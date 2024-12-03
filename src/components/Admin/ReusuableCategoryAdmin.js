@@ -17,7 +17,7 @@ const ReusableCategoryAdmin = ({ categoryName }) => {
     isFeatured: false,
     logisticalDetails: "",
     nearbyAttractions: "",
-    budget: "",
+    entranceFee: "",
     backgroundInformation: "",
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -102,7 +102,7 @@ const ReusableCategoryAdmin = ({ categoryName }) => {
         isFeatured: false,
         logisticalDetails: "",
         nearbyAttractions: "",
-        budget: "",
+        entranceFee: "",
         backgroundInformation: "",
       });
     }
@@ -132,7 +132,7 @@ const ReusableCategoryAdmin = ({ categoryName }) => {
       isFeatured: false,
       logisticalDetails: "",
       nearbyAttractions: "",
-      budget: "",
+      entranceFee: "",
       backgroundInformation: "",
     });
   };
@@ -186,7 +186,7 @@ const ReusableCategoryAdmin = ({ categoryName }) => {
                   <h4 className="text-2xl font-semibold mb-4 text-teal-800">{activity.name}</h4>
                   <p className="text-gray-700 mb-4">Logistical Details: {activity.logisticalDetails}</p>
                   <p className="text-gray-700 mb-4">Nearby Attractions: {activity.nearbyAttractions}</p>
-                  <p className="text-gray-700 mb-4">Budget: {activity.budget}</p>
+                  <p className="text-gray-700 mb-4">Entrance Fee: {activity.entranceFee}</p>
                   <p className="text-gray-700 mb-4">Background Information: {activity.backgroundInformation}</p>
                   <p className="text-gray-600 mb-4">Featured: {activity.isFeatured ? "Yes" : "No"}</p>
                   <div className="flex justify-between">
@@ -260,12 +260,12 @@ const ReusableCategoryAdmin = ({ categoryName }) => {
             ></textarea>
           </div>
           <div className="flex flex-col">
-            <label className="font-semibold mb-2 text-teal-800">Budget</label>
+            <label className="font-semibold mb-2 text-teal-800">Entrance Fee</label>
             <input
               type="text"
-              name="budget"
-              placeholder="Budget"
-              value={currentActivity ? currentActivity.budget : newActivity.budget}
+              name="entranceFee"
+              placeholder="Entrance Fee"
+              value={currentActivity ? currentActivity.entranceFee : newActivity.entranceFee}
               onChange={handleInputChange}
               className="p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
             />

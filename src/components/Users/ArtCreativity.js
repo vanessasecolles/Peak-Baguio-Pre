@@ -64,7 +64,7 @@ const ArtCreativity = () => {
                   <span className="font-bold text-purple-800">Logistical Details:</span> {activity.logisticalDetails || "No logistical details available."}
                 </p>
                 <p className="text-gray-700 mb-4">
-                  <span className="font-bold text-purple-800">Budget:</span> {activity.budget || "No budget information available."}
+                  <span className="font-bold text-purple-800">Entrance Fee:</span> {activity.entranceFee || "No entrance fee information available."}
                 </p>
                 <p className="text-gray-700 mb-4">
                   <span className="font-bold text-purple-800">Background Information:</span> {activity.backgroundInformation || "No background information available."}

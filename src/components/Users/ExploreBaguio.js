@@ -106,8 +106,8 @@ const ExploreBaguio = () => {
                         </button>
                       )}
                     </div>
-                    {place.budget && (
-                      <p className="text-teal-700 font-bold">Budget: {place.budget}</p>
+                    {place.entranceFee && (
+                      <p className="text-teal-700 font-bold">Entrance Fee: {place.entranceFee}</p>
                     )}
                   </div>
                 </div>
