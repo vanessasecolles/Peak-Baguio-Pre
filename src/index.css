@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* AdminNav Styles */
+.admin-nav {
+    background-color: #1a202c; /* Dark gray color for Admin Sidebar */
+    color: white;
+  }
+  
+  .admin-nav ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .admin-nav ul li a {
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: white;
+    border-radius: 5px;
+  }
+  
+  .admin-nav ul li a:hover {
+    background-color: #4299e1; /* Lighter blue for hover effect */
+  }
+  
+  .admin-nav ul li a.active {
+    background-color: #2b6cb0; /* Darker blue for active state */
+  }
+  
+  /* User Navbar Styles */
+  .user-navbar {
+    background-color: #ffffff; /* White color for User Navbar */
+    color: #333;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .user-navbar ul {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+  }
+  
+  .user-navbar ul li a {
+    text-decoration: none;
+    color: #333;
+  }
+  
+  .user-navbar ul li a:hover {
+    color: #2563eb; /* Blue for hover */
+  }
+  
+  .user-navbar ul li a.active {
+    color: #1e40af; /* Darker blue for active link */
+    font-weight: bold;
+  }
+  
