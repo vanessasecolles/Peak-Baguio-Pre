@@ -247,145 +247,143 @@ const GenerateItinerary = () => {
   };
 
   return (
-    <section className="flex items-center justify-center min-h-screen p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
-      <div className="bg-white shadow-2xl rounded-lg p-10 w-full max-w-lg transform hover:scale-105 transition-transform duration-500 ease-in-out">
-        <h2 className="text-4xl font-bold mb-8 text-center text-teal-700">Generate Your Itinerary</h2>
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Section 1: General Info */}
-          <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 1: General Info</h3>
-          <div>
-            <label htmlFor="budget" className="block font-semibold mb-3 text-teal-800">Select Your Budget</label>
-            <select
-              id="budget"
-              name="budget"
-              value={formData.budget}
-              onChange={handleChange}
-              className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-              required
-            >
-              <option value="">Choose a Budget</option>
-              {budgets.map((budget, index) => (
-                <option key={index} value={budget}>{budget}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="duration" className="block font-semibold mb-3 text-teal-800">Duration of Stay</label>
-            <select
-              id="duration"
-              name="duration"
-              value={formData.duration}
-              onChange={handleChange}
-              className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-              required
-            >
-              <option value="">Choose Duration</option>
-              {durations.map((duration, index) => (
-                <option key={index} value={duration}>{duration}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Section 2: Accommodation */}
-          <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 2: Accommodation</h3>
-          <div>
-            <label className="block font-semibold mb-3 text-teal-800">Do you already have accommodation?</label>
-            <div className="flex items-center space-x-4">
-              <label>
-                <input
-                  type="radio"
-                  name="hasAccommodation"
-                  value={true}
-                  checked={formData.hasAccommodation === true}
-                  onChange={() => setFormData({ ...formData, hasAccommodation: true })}
-                  className="mr-2"
-                />
-                Yes, I already have one.
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="hasAccommodation"
-                  value={false}
-                  checked={formData.hasAccommodation === false}
-                  onChange={() => setFormData({ ...formData, hasAccommodation: false })}
-                  className="mr-2"
-                />
-                No, I need a recommendation.
-              </label>
-            </div>
-          </div>
-
-          {formData.hasAccommodation && (
-            <div>
-              <label htmlFor="accommodation" className="block font-semibold mb-3 text-teal-800">If Yes, please specify your accommodation</label>
-              <input
-                type="text"
-                id="accommodation"
-                name="accommodation"
-                value={formData.accommodation}
-                onChange={handleChange}
-                className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-              />
-            </div>
-          )}
-
-          {/* Section 3: Interests and Preferences */}
-          <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 3: Interests and Preferences</h3>
-          <div>
-            <label htmlFor="mustSeeAttractions" className="block font-semibold mb-3 text-teal-800">Must-See Attractions</label>
-            <input
-              type="text"
-              id="mustSeeAttractions"
-              name="mustSeeAttractions"
-              value={formData.mustSeeAttractions}
-              onChange={handleChange}
-              className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="optionalPreferences" className="block font-semibold mb-3 text-teal-800">Optional Preferences</label>
-            <input
-              type="text"
-              id="optionalPreferences"
-              name="optionalPreferences"
-              value={formData.optionalPreferences}
-              onChange={handleChange}
-              className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-            />
-          </div>
-
-          {/* Section 4: Final Notes */}
-          <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 4: Final Notes</h3>
-          <div>
-            <label htmlFor="additionalNotes" className="block font-semibold mb-3 text-teal-800">Additional Notes</label>
-            <textarea
-              id="additionalNotes"
-              name="additionalNotes"
-              value={formData.additionalNotes}
-              onChange={handleChange}
-              className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-              rows="3"
-            ></textarea>
-          </div>
-          <button
-            type="submit"
-            className="bg-teal-700 text-white py-4 px-6 rounded-lg hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-500 w-full flex items-center justify-center space-x-3 transition-transform transform hover:scale-105 duration-300 ease-in-out"
-            disabled={loading}
+    <section className="min-h-screen p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
+      <h2 className="text-4xl font-bold mb-8 text-center text-teal-700">Generate Your Itinerary</h2>
+      <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto">
+        {/* Section 1: General Info */}
+        <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 1: General Info</h3>
+        <div>
+          <label htmlFor="budget" className="block font-semibold mb-3 text-teal-800">Select Your Budget</label>
+          <select
+            id="budget"
+            name="budget"
+            value={formData.budget}
+            onChange={handleChange}
+            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
+            required
           >
-            <FontAwesomeIcon icon={faCheckCircle} />
-            <span>{loading ? "Generating..." : "Generate Itinerary"}</span>
-          </button>
-        </form>
-      </div>
+            <option value="">Choose a Budget</option>
+            {budgets.map((budget, index) => (
+              <option key={index} value={budget}>{budget}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="duration" className="block font-semibold mb-3 text-teal-800">Duration of Stay</label>
+          <select
+            id="duration"
+            name="duration"
+            value={formData.duration}
+            onChange={handleChange}
+            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
+            required
+          >
+            <option value="">Choose Duration</option>
+            {durations.map((duration, index) => (
+              <option key={index} value={duration}>{duration}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Section 2: Accommodation */}
+        <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 2: Accommodation</h3>
+        <div>
+          <label className="block font-semibold mb-3 text-teal-800">Do you already have accommodation?</label>
+          <div className="flex items-center space-x-4">
+            <label>
+              <input
+                type="radio"
+                name="hasAccommodation"
+                value={true}
+                checked={formData.hasAccommodation === true}
+                onChange={() => setFormData({ ...formData, hasAccommodation: true })}
+                className="mr-2"
+              />
+              Yes, I already have one.
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="hasAccommodation"
+                value={false}
+                checked={formData.hasAccommodation === false}
+                onChange={() => setFormData({ ...formData, hasAccommodation: false })}
+                className="mr-2"
+              />
+              No, I need a recommendation.
+            </label>
+          </div>
+        </div>
+
+        {formData.hasAccommodation && (
+          <div>
+            <label htmlFor="accommodation" className="block font-semibold mb-3 text-teal-800">If Yes, please specify your accommodation</label>
+            <input
+              type="text"
+              id="accommodation"
+              name="accommodation"
+              value={formData.accommodation}
+              onChange={handleChange}
+              className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
+            />
+          </div>
+        )}
+
+        {/* Section 3: Interests and Preferences */}
+        <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 3: Interests and Preferences</h3>
+        <div>
+          <label htmlFor="mustSeeAttractions" className="block font-semibold mb-3 text-teal-800">Must-See Attractions</label>
+          <input
+            type="text"
+            id="mustSeeAttractions"
+            name="mustSeeAttractions"
+            value={formData.mustSeeAttractions}
+            onChange={handleChange}
+            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="optionalPreferences" className="block font-semibold mb-3 text-teal-800">Optional Preferences</label>
+          <input
+            type="text"
+            id="optionalPreferences"
+            name="optionalPreferences"
+            value={formData.optionalPreferences}
+            onChange={handleChange}
+            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
+          />
+        </div>
+
+        {/* Section 4: Final Notes */}
+        <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 4: Final Notes</h3>
+        <div>
+          <label htmlFor="additionalNotes" className="block font-semibold mb-3 text-teal-800">Additional Notes</label>
+          <textarea
+            id="additionalNotes"
+            name="additionalNotes"
+            value={formData.additionalNotes}
+            onChange={handleChange}
+            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
+            rows="3"
+          ></textarea>
+        </div>
+        <button
+          type="submit"
+          className="bg-teal-700 text-white py-4 px-6 rounded-lg hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-500 w-full flex items-center justify-center space-x-3 transition-transform transform hover:scale-105 duration-300 ease-in-out"
+          disabled={loading}
+        >
+          <FontAwesomeIcon icon={faCheckCircle} />
+          <span>{loading ? "Generating..." : "Generate Itinerary"}</span>
+        </button>
+      </form>
 
       <Modal
         isOpen={isModalOpen}
         onRequestClose={closeModal}
         contentLabel="Generated Itinerary"
-        className="modal-content bg-white p-8 rounded-lg shadow-2xl max-w-3xl mx-auto mt-20 transform hover:scale-105 transition-transform duration-500 ease-in-out overflow-y-auto max-h-[80vh]"
+        className="modal-content bg-white p-8 rounded-lg shadow-2xl max-w-3xl mx-auto mt-20 overflow-y-auto max-h-[80vh]"
         overlayClassName="modal-overlay fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-black bg-opacity-50"
       >
         <div className="p-6">
