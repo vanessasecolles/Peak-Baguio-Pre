@@ -1,24 +1,35 @@
 import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { db } from "../../firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 
-const SpotDetails = ({ spotId = "Burnham Park"}) => {
+// Utility to map display-friendly names to Firestore keys
+const budgetMap = {
+  "Low Budget": "lowBudget",
+  "Mid Range": "midRange",
+  "Luxury": "luxury",
+};
+
+const SpotDetails = () => {
+  const { spotId } = useParams(); // Get slugified ID from the URL
   const [activities, setActivities] = useState([]);
   const [dining, setDining] = useState([]);
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState("");
   const [selectedBudget, setSelectedBudget] = useState("");
-  const [budgets] = useState(["Low Budget", "Mid Range", "Luxury"]);
+  const [budgets] = useState(Object.keys(budgetMap)); // Use display-friendly names
   const [timeOfDayOptions] = useState(["Morning", "Afternoon", "Evening"]);
 
   useEffect(() => {
     const fetchSpotDetails = async () => {
       try {
+        const originalSpotId = spotId.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+
         // Fetch all activities
         const activitiesPromises = timeOfDayOptions.map(async (time) => {
           const activitiesListRef = collection(
             db,
             "spots",
-            spotId,
+            originalSpotId,
             "activities",
             time.toLowerCase(),
             "list"
@@ -34,12 +45,11 @@ const SpotDetails = ({ spotId = "Burnham Park"}) => {
         setActivities(activitiesData);
 
         // Fetch all dining options
-        const diningPromises = budgets.map(async (budget) => {
-          const firestoreKey = budget.toLowerCase().replace(" ", "");
+        const diningPromises = Object.values(budgetMap).map(async (firestoreKey) => {
           const diningListRef = collection(
             db,
             "spots",
-            spotId,
+            originalSpotId,
             "dining",
             firestoreKey,
             "list"
@@ -59,7 +69,7 @@ const SpotDetails = ({ spotId = "Burnham Park"}) => {
     };
 
     fetchSpotDetails();
-  }, [spotId, timeOfDayOptions, budgets]);
+  }, [spotId, timeOfDayOptions]);
 
   const filteredActivities = selectedTimeOfDay
     ? activities
@@ -69,7 +79,7 @@ const SpotDetails = ({ spotId = "Burnham Park"}) => {
 
   const filteredDining = selectedBudget
     ? dining
-        .filter((option) => option.budget === selectedBudget.toLowerCase().replace(" ", ""))
+        .filter((option) => option.budget === budgetMap[selectedBudget]) // Map display name to Firestore key
         .flatMap((option) => option.diningOptions || [])
     : dining.flatMap((option) => option.diningOptions || []);
 
@@ -121,6 +131,15 @@ const SpotDetails = ({ spotId = "Burnham Park"}) => {
               key={index}
               className="group rounded-lg shadow-xl overflow-hidden bg-white transform transition-transform duration-500 hover:scale-105"
             >
+              {activity.image && (
+                <div className="relative w-full h-48 overflow-hidden">
+                  <img
+                    src={activity.image}
+                    alt={activity.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
               <div className="p-6">
                 <h4 className="text-xl font-semibold mb-2 text-teal-800 group-hover:text-teal-600 transition-colors duration-300">
                   {activity.name}
@@ -149,6 +168,15 @@ const SpotDetails = ({ spotId = "Burnham Park"}) => {
               key={index}
               className="group rounded-lg shadow-xl overflow-hidden bg-white transform transition-transform duration-500 hover:scale-105"
             >
+              {option.image && (
+                <div className="relative w-full h-48 overflow-hidden">
+                  <img
+                    src={option.image}
+                    alt={option.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
               <div className="p-6">
                 <h4 className="text-xl font-semibold mb-2 text-teal-800 group-hover:text-teal-600 transition-colors duration-300">
                   {option.name}

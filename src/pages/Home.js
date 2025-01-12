@@ -72,8 +72,7 @@ const Home = () => {
         )}
       </div>
       <ItinerarySteps/>
-
-      
+     
       <ExploreBaguio/>
 
       <footer className="bg-teal-800 text-white py-8 mt-16">

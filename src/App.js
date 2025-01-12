@@ -34,6 +34,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminItinerariesTable from "./components/Admin/AdminItinerariesTable";
 import AdminAccounts from "./components/Admin/AdminAccounts";
 import AdminCategory from "./components/Admin/AdminCategory";
+import SpotDetails from "./components/Users/SpotsReusable";
+import ExploreBaguio from "./components/Users/ExploreBaguio";
+import DynamicSpotAdmin from "./components/Admin/DynamicSpotAdmin";
 
 const App = () => {
   const [userRole, setUserRole] = useState(null); // null, "user", "admin"
@@ -180,6 +183,16 @@ const App = () => {
                 </>
               }
             />
+            <Route path="/explore-baguio" element={<ExploreBaguio />} />
+            <Route
+                path="/spots/:spotId"
+                element={
+                  <>
+                    <Navbar />
+                    <SpotDetails />
+                  </>
+                }
+              />
             <Route
               path="/user-auth"
               element={
@@ -214,6 +227,7 @@ const App = () => {
                 <div className="flex-1 p-8">
                   <Routes>
                     <Route path="generate-itinerary" element={<GenerateItineraryAdmin />} />
+                    <Route path="spot/:spotId" element={<DynamicSpotAdmin />} />
                     <Route path="add-admin" element={<AddAdmin />} />
                     <Route path="itin-table" element={<AdminItinerariesTable />} />
                     <Route path="admin-accounts" element={<AdminAccounts />} />

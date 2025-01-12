@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../../firebaseConfig";
-import { doc, onSnapshot, collection, addDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, addDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import Modal from "react-modal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheckCircle, faTimes, faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -14,71 +13,158 @@ import "react-toastify/dist/ReactToastify.css";
 Modal.setAppElement("#root");
 
 const GenerateItinerary = () => {
+  const [spots, setSpots] = useState([]);
   const [budgets, setBudgets] = useState([]);
-  const [durations, setDurations] = useState([]);
+  const [explorePeriods] = useState(["Morning", "Afternoon", "Evening"]);
   const [formData, setFormData] = useState({
+    spot: "",
     budget: "",
-    duration: "",
-    hasAccommodation: false,
-    accommodation: "",
-    mustSeeAttractions: "",
-    optionalPreferences: "",
-    additionalNotes: "",
+    explorePeriod: "",
   });
   const [itinerary, setItinerary] = useState("");
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [coordinates, setCoordinates] = useState([]);
   const navigate = useNavigate();
 
-  // Fetch options from Firestore
+  // Fetch spots and budgets
   useEffect(() => {
-    const itineraryDoc = doc(db, "itineraryFields", "fields");
-    const unsubscribe = onSnapshot(itineraryDoc, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        setBudgets(data.budgets || []);
-        setDurations(data.durations || []);
-      }
-    });
+    const fetchSpotsAndBudgets = async () => {
+      try {
+        // Fetch spots
+        const spotsSnapshot = await getDocs(collection(db, "spots"));
+        const spotsData = spotsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setSpots(spotsData);
 
-    return () => {
-      unsubscribe();
+        // Fetch budgets
+        const budgetsDoc = await getDoc(doc(db, "itineraryFields", "fields"));
+        if (budgetsDoc.exists()) {
+          setBudgets(budgetsDoc.data().budgets || []);
+        }
+      } catch (error) {
+        console.error("Error fetching spots or budgets:", error);
+        toast.error("Error fetching data from Firestore.");
+      }
     };
+
+    fetchSpotsAndBudgets();
   }, []);
+
+  const fetchSpotData = async (spotId) => {
+    try {
+      const timeOfDayOptions = ["morning", "afternoon", "evening"];
+      const budgetOptions = ["lowBudget", "midRange", "luxury"];
+
+      const activitiesPromises = timeOfDayOptions.map(async (time) => {
+        const activitiesListRef = collection(
+          db,
+          "spots",
+          spotId,
+          "activities",
+          time,
+          "list"
+        );
+        const activitiesSnapshot = await getDocs(activitiesListRef);
+        return {
+          timeOfDay: time,
+          activities: activitiesSnapshot.docs.map((doc) => doc.data()),
+        };
+      });
+
+      const diningPromises = budgetOptions.map(async (budget) => {
+        const diningListRef = collection(
+          db,
+          "spots",
+          spotId,
+          "dining",
+          budget,
+          "list"
+        );
+        const diningSnapshot = await getDocs(diningListRef);
+        return {
+          budget,
+          diningOptions: diningSnapshot.docs.map((doc) => doc.data()),
+        };
+      });
+
+      const [activities, dining] = await Promise.all([
+        Promise.all(activitiesPromises),
+        Promise.all(diningPromises),
+      ]);
+
+      return { activities, dining };
+    } catch (error) {
+      console.error("Error fetching spot data:", error);
+      toast.error("Error fetching spot data.");
+      return { activities: [], dining: [] };
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Map user-friendly input to Firestore field keys
+      const budgetMap = {
+        "Low Budget": "lowBudget",
+        "Mid Range": "midRange",
+        "Luxury": "luxury",
+      };
+
+      console.log("Selected Budget:", formData.budget); // Debugging
+
+      const timeOfDay = formData.explorePeriod.toLowerCase();
+      const budget = budgetMap[formData.budget];
+
+      if (!budget) {
+        throw new Error(`Invalid budget selection: ${formData.budget}`); // Add more context to the error
+      }
+
+      const { activities, dining } = await fetchSpotData(formData.spot);
+
+      const filteredActivities = activities
+        .filter((activityGroup) => activityGroup.timeOfDay === timeOfDay)
+        .flatMap((group) => group.activities)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+
+      const filteredDining = dining
+        .filter((diningGroup) => diningGroup.budget === budget)
+        .flatMap((group) => group.diningOptions)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 2);
+
+      const formattedActivities = filteredActivities
+        .map((activity) => `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`)
+        .join("\n");
+
+      const formattedDining = filteredDining
+        .map((option) => `- **${option.name}**: ${option.description} (Price: ₱${option.price})`)
+        .join("\n");
+
+      if (!formattedActivities && !formattedDining) {
+        throw new Error("No suitable options for the selected time of day and budget.");
+      }
+
       const prompt = `
         You are a travel planner specializing in Baguio City. The user has provided the following details:
 
-        - *Trip Duration*: ${formData.duration} (e.g., Day Trip, Weekend, Extended Stay)
-        - *Budget*: ${formData.budget} (Low Range, Mid Range, Luxury Range)
-        - *Accommodation*: ${formData.hasAccommodation ? formData.accommodation : "No accommodation provided"}
-        - *Must-See Attractions*: ${formData.mustSeeAttractions || "No specific spots mentioned"}
-        - *Optional Preferences*: ${formData.optionalPreferences || "No preference"}
-        - *Additional Notes*: ${formData.additionalNotes || "None"}
+        - *Spot*: ${formData.spot}
+        - *Time of Day*: ${formData.explorePeriod} (Morning, Afternoon, Evening)
+        - *Budget*: ${formData.budget} (Low Budget, Mid Range, Luxury)
 
-        Your tasks:
-        1. Validate whether the provided accommodation, attractions, and restaurants are located in Baguio City.
-           - If valid, confirm and include them in the itinerary.
-           - If not valid, suggest up to three alternatives that are accurate and suitable for the user's preferences.
-        2. Create a detailed travel itinerary based on the user's preferences:
-           - Include **popular attractions** and **hidden gems** in Baguio City.
-           - Ensure activities are **grouped by proximity** to minimize travel time.
-           - Add a **duration time** for each activity (e.g., 1.5 hours, 2 hours).
-        3. Incorporate recommendations for **nearby attractions** and **optional preferences** to enhance the experience.
-        4. Ensure the itinerary is well-structured and dynamic, balancing popular locations with offbeat suggestions.
+        ### Activities:
+        ${formattedActivities || "No activities available for the selected time of day."}
 
-        Provide the itinerary in a format where each activity includes:
-        - The activity name in bold
-        - A brief description
-        - The duration listed directly below the activity name
+        ### Dining Options:
+        ${formattedDining || "No dining options available for the selected budget."}
 
-        Ensure the itinerary aligns with the trip duration and user inputs while maintaining flexibility and variety.
+        Your task:
+        - Create a detailed itinerary tailored strictly to the selected spot (${formData.spot}), time of day (${formData.explorePeriod}), and budget (${formData.budget}).
+        - Ensure the itinerary is engaging and well-structured, starting with activities for the selected time of day, followed by dining suggestions.
       `;
 
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -94,7 +180,7 @@ const GenerateItinerary = () => {
             { role: "user", content: prompt },
           ],
           max_tokens: 800,
-          temperature: 0.7,
+          temperature: 0.9,
         }),
       });
 
@@ -104,31 +190,17 @@ const GenerateItinerary = () => {
 
       const data = await response.json();
       if (data.choices && data.choices.length > 0) {
-        let generatedItinerary = data.choices[0].message.content.trim();
-
-        // Fetch coordinates for locations in the generated itinerary
-        const coords = await fetchCoordinates(generatedItinerary);
-
-        // Add Google Maps links to the itinerary
-        const updatedItinerary = addGoogleMapsLinksToItinerary(coords, generatedItinerary);
-
-        // Set itinerary and coordinates state
-        setItinerary(updatedItinerary);
-        setCoordinates(coords);
-
-        // Open modal to show the generated itinerary
+        const generatedItinerary = data.choices[0].message.content.trim();
+        setItinerary(generatedItinerary);
         setIsModalOpen(true);
 
-        // Save the itinerary, coordinates, and additional metadata to Firestore
         const auth = getAuth();
         const user = auth.currentUser;
-
         if (user) {
           const itinerariesCollectionRef = collection(db, "itineraries");
           await addDoc(itinerariesCollectionRef, {
             userId: user.uid,
-            itinerary: updatedItinerary,
-            coordinates: coords,
+            itinerary: generatedItinerary,
             timestamp: new Date(),
             ...formData,
           });
@@ -144,91 +216,6 @@ const GenerateItinerary = () => {
     }
   };
 
-  const getGeocode = async (placeName) => {
-    const apiKey = process.env.REACT_APP_OPENCAGE_API_KEY;
-    const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(placeName)}&key=${apiKey}`;
-
-    try {
-      const response = await axios.get(url);
-      if (response.data.results.length > 0) {
-        const { lat, lng } = response.data.results[0].geometry;
-        return { lat, lng };
-      }
-      return null;
-    } catch (error) {
-      toast.error("Error fetching geocode");
-      return null;
-    }
-  };
-
-  const fetchCoordinates = async (generatedItinerary) => {
-    const places = extractPlacesFromItinerary(generatedItinerary);
-    let coords = [];
-
-    for (const place of places) {
-      const geocode = await getGeocode(place);
-      if (geocode) {
-        coords.push({ name: place, ...geocode });
-      }
-    }
-    return coords;
-  };
-
-  const extractPlacesFromItinerary = (itineraryText) => {
-    const boldRegex = /\*\*(.*?)\*\*/g;
-    let matches;
-    let places = [];
-    let isFirstBold = true;
-
-    while ((matches = boldRegex.exec(itineraryText)) !== null) {
-      let place = matches[1].trim();
-
-      if (isFirstBold) {
-        isFirstBold = false;
-        continue;
-      }
-
-      const nonLocationKeywords = ["Breakfast at", "Lunch at", "Dinner at"];
-      if (nonLocationKeywords.some((keyword) => place.startsWith(keyword))) {
-        continue;
-      }
-
-      if (
-        !place.toLowerCase().includes("day") &&
-        !place.toLowerCase().includes("morning") &&
-        !place.toLowerCase().includes("afternoon") &&
-        !place.toLowerCase().includes("evening") &&
-        !place.toLowerCase().includes("stay") &&
-        !place.endsWith(":")
-      ) {
-        places.push(place);
-      }
-    }
-
-    return places;
-  };
-
-  const generateGoogleMapsLink = (start, end) => {
-    const startEncoded = encodeURIComponent(`${start}, Baguio, Philippines`);
-    const endEncoded = encodeURIComponent(`${end}, Baguio, Philippines`);
-    return `https://www.google.com/maps/dir/?api=1&origin=${startEncoded}&destination=${endEncoded}`;
-  };
-
-  const addGoogleMapsLinksToItinerary = (coords, generatedItinerary) => {
-    let updatedItinerary = generatedItinerary;
-
-    for (let i = 0; i < coords.length - 1; i++) {
-      const start = coords[i].name;
-      const end = coords[i + 1].name;
-      if (start && end) {
-        const googleMapsLink = generateGoogleMapsLink(start, end);
-        updatedItinerary += `\n\nTravel from **${start}** to **${end}**. [**View Directions on Google Maps**](${googleMapsLink}).`;
-      }
-    }
-
-    return updatedItinerary;
-  };
-
   const closeModal = () => {
     setIsModalOpen(false);
     setItinerary("");
@@ -239,10 +226,10 @@ const GenerateItinerary = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -250,8 +237,23 @@ const GenerateItinerary = () => {
     <section className="min-h-screen p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
       <h2 className="text-4xl font-bold mb-8 text-center text-teal-700">Generate Your Itinerary</h2>
       <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto">
-        {/* Section 1: General Info */}
-        <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 1: General Info</h3>
+        <div>
+          <label htmlFor="spot" className="block font-semibold mb-3 text-teal-800">Choose a Spot</label>
+          <select
+            id="spot"
+            name="spot"
+            value={formData.spot}
+            onChange={handleChange}
+            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500"
+            required
+          >
+            <option value="">Select a Spot</option>
+            {spots.map((spot) => (
+              <option key={spot.id} value={spot.id}>{spot.name}</option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label htmlFor="budget" className="block font-semibold mb-3 text-teal-800">Select Your Budget</label>
           <select
@@ -259,119 +261,36 @@ const GenerateItinerary = () => {
             name="budget"
             value={formData.budget}
             onChange={handleChange}
-            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
+            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500"
             required
           >
             <option value="">Choose a Budget</option>
-            {budgets.map((budget, index) => (
-              <option key={index} value={budget}>{budget}</option>
-            ))}
+            <option value="Low Budget">Low Budget</option>
+            <option value="Mid Range">Mid Range</option>
+            <option value="Luxury">Luxury</option>
           </select>
         </div>
 
         <div>
-          <label htmlFor="duration" className="block font-semibold mb-3 text-teal-800">Duration of Stay</label>
+          <label htmlFor="explorePeriod" className="block font-semibold mb-3 text-teal-800">Explore Period</label>
           <select
-            id="duration"
-            name="duration"
-            value={formData.duration}
+            id="explorePeriod"
+            name="explorePeriod"
+            value={formData.explorePeriod}
             onChange={handleChange}
-            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
+            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500"
             required
           >
-            <option value="">Choose Duration</option>
-            {durations.map((duration, index) => (
-              <option key={index} value={duration}>{duration}</option>
+            <option value="">Choose Explore Period</option>
+            {explorePeriods.map((explorePeriod) => (
+              <option key={explorePeriod} value={explorePeriod}>{explorePeriod}</option>
             ))}
           </select>
         </div>
 
-        {/* Section 2: Accommodation */}
-        <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 2: Accommodation</h3>
-        <div>
-          <label className="block font-semibold mb-3 text-teal-800">Do you already have accommodation?</label>
-          <div className="flex items-center space-x-4">
-            <label>
-              <input
-                type="radio"
-                name="hasAccommodation"
-                value={true}
-                checked={formData.hasAccommodation === true}
-                onChange={() => setFormData({ ...formData, hasAccommodation: true })}
-                className="mr-2"
-              />
-              Yes, I already have one.
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="hasAccommodation"
-                value={false}
-                checked={formData.hasAccommodation === false}
-                onChange={() => setFormData({ ...formData, hasAccommodation: false })}
-                className="mr-2"
-              />
-              No, I need a recommendation.
-            </label>
-          </div>
-        </div>
-
-        {formData.hasAccommodation && (
-          <div>
-            <label htmlFor="accommodation" className="block font-semibold mb-3 text-teal-800">If Yes, please specify your accommodation</label>
-            <input
-              type="text"
-              id="accommodation"
-              name="accommodation"
-              value={formData.accommodation}
-              onChange={handleChange}
-              className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-            />
-          </div>
-        )}
-
-        {/* Section 3: Interests and Preferences */}
-        <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 3: Interests and Preferences</h3>
-        <div>
-          <label htmlFor="mustSeeAttractions" className="block font-semibold mb-3 text-teal-800">Must-See Attractions</label>
-          <input
-            type="text"
-            id="mustSeeAttractions"
-            name="mustSeeAttractions"
-            value={formData.mustSeeAttractions}
-            onChange={handleChange}
-            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="optionalPreferences" className="block font-semibold mb-3 text-teal-800">Optional Preferences</label>
-          <input
-            type="text"
-            id="optionalPreferences"
-            name="optionalPreferences"
-            value={formData.optionalPreferences}
-            onChange={handleChange}
-            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-          />
-        </div>
-
-        {/* Section 4: Final Notes */}
-        <h3 className="text-2xl font-semibold mb-4 text-teal-800">Section 4: Final Notes</h3>
-        <div>
-          <label htmlFor="additionalNotes" className="block font-semibold mb-3 text-teal-800">Additional Notes</label>
-          <textarea
-            id="additionalNotes"
-            name="additionalNotes"
-            value={formData.additionalNotes}
-            onChange={handleChange}
-            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
-            rows="3"
-          ></textarea>
-        </div>
         <button
           type="submit"
-          className="bg-teal-700 text-white py-4 px-6 rounded-lg hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-500 w-full flex items-center justify-center space-x-3 transition-transform transform hover:scale-105 duration-300 ease-in-out"
+          className="bg-teal-700 text-white py-4 px-6 rounded-lg hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-500 w-full"
           disabled={loading}
         >
           <FontAwesomeIcon icon={faCheckCircle} />
@@ -389,21 +308,19 @@ const GenerateItinerary = () => {
         <div className="p-6">
           <h3 className="text-3xl font-bold mb-6 text-teal-700">Your AI-Generated Itinerary</h3>
           <div className="p-4 border border-teal-300 rounded-lg whitespace-pre-line bg-gray-50 text-gray-800 overflow-y-auto max-h-[60vh]">
-            <ReactMarkdown className="itinerary-content">
-              {itinerary}
-            </ReactMarkdown>
+            <ReactMarkdown>{itinerary}</ReactMarkdown>
           </div>
           <div className="flex justify-end space-x-4 mt-6">
             <button
               onClick={closeModal}
-              className="bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-500 flex items-center space-x-2 transition duration-300 ease-in-out"
+              className="bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-500"
             >
               <FontAwesomeIcon icon={faTimes} />
               <span>Close</span>
             </button>
             <button
               onClick={handleVisitMyItineraries}
-              className="bg-teal-700 text-white py-3 px-6 rounded-lg hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-500 flex items-center space-x-2 transition duration-300 ease-in-out"
+              className="bg-teal-700 text-white py-3 px-6 rounded-lg hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-500"
             >
               <FontAwesomeIcon icon={faArrowRight} />
               <span>View My Itineraries</span>

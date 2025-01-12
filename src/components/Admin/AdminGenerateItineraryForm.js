@@ -3,8 +3,8 @@ import { getFirestore, setDoc, doc } from "firebase/firestore";
 
 const AdminGenerateItineraryForm = () => {
   const [fields, setFields] = useState({
-    budgets: ["Budget Traveler", "Mid-range Traveler", "Luxury Traveler"],
-    durations: ["Day Trips", "Weekend Getaway", "Extended Stay"],
+    budgets: ["Low Range", "Mid Range", "Luxury Range"],
+    durations: ["Day Trips", "Weekend", "Extended Stay"],
     interests: ["Nature Lover", "Culture Enthusiast", "Adventure Seeker", "Foodie", "History Buff", "Family-friendly"],
   });
   const db = getFirestore();

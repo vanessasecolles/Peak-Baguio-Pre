@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
-import logo from '../../img/logoPB.png';
-import { app } from '../../firebaseConfig'; // Import initialized Firebase app
+import logo from "../../img/logoPB.png";
+import { app } from "../../firebaseConfig"; // Import initialized Firebase app
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
-// Get Auth instance
+// Utility to generate a key-friendly slug
+const toSlug = (name) => name.toLowerCase().replace(/ /g, "-");
+
 const auth = getAuth(app);
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [spots, setSpots] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,6 +22,23 @@ const Navbar = () => {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const fetchSpots = async () => {
+      try {
+        const spotsSnapshot = await getDocs(collection(db, "spots"));
+        const spotsData = spotsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          name: doc.data().name,
+        }));
+        setSpots(spotsData);
+      } catch (error) {
+        console.error("Error fetching spots:", error);
+      }
+    };
+
+    fetchSpots();
   }, []);
 
   const handleLogout = async () => {
@@ -31,8 +51,9 @@ const Navbar = () => {
     }
   };
 
-  const handleCategoryClick = (category) => {
-    navigate(`/${category.toLowerCase().replace(/ & | /g, '-')}`);
+  const handleSpotClick = (spotName) => {
+    const slug = toSlug(spotName); // Convert spot name to slug
+    navigate(`/spots/${slug}`);
   };
 
   return (
@@ -54,51 +75,19 @@ const Navbar = () => {
               Home
             </NavLink>
           </li>
-          {/*
-          <li>
-            <NavLink
-              to="/about"
-              className={({ isActive }) =>
-                `p-2 rounded ${isActive ? "font-bold text-yellow-300" : "hover:text-yellow-200 transition-colors duration-300"}`
-              }
-            >
-              About
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/contact"
-              className={({ isActive }) =>
-                `p-2 rounded ${isActive ? "font-bold text-yellow-300" : "hover:text-yellow-200 transition-colors duration-300"}`
-              }
-            >
-              Contact
-            </NavLink>
-          </li>
-          */}
           <li className="relative group">
             <span className="p-2 rounded cursor-pointer hover:text-yellow-200 transition-colors duration-300">
               Explore Baguio
             </span>
             <div className="absolute left-0 top-full mt-2 w-48 bg-white text-teal-700 shadow-md rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
               <ul className="flex flex-col py-2">
-                {[
-                  "Adventures & Activities",
-                  "Art & Creativity",
-                  "Culture & History",
-                  "Events & Festivals",
-                  "Family-Friendly",
-                  "Food & Gastronomy",
-                  "Nature & Outdoors",
-                  "Seasonal Attractions",
-                  "Shopping & Souvenirs",
-                ].map((category) => (
+                {spots.map((spot) => (
                   <li
-                    key={category}
+                    key={spot.id}
                     className="px-4 py-2 text-sm hover:bg-teal-100 cursor-pointer"
-                    onClick={() => handleCategoryClick(category)}
+                    onClick={() => handleSpotClick(spot.name)}
                   >
-                    {category}
+                    {spot.name}
                   </li>
                 ))}
               </ul>

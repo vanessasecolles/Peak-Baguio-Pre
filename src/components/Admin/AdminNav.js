@@ -1,14 +1,44 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { auth } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
 import { signOut } from "firebase/auth";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { collection, getDocs } from "firebase/firestore";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSignOutAlt, faChevronDown, faChevronRight, faUserShield } from "@fortawesome/free-solid-svg-icons";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const AdminNav = ({ userRole }) => {
   const navigate = useNavigate();
+  const [spots, setSpots] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [spotsCollapsed, setSpotsCollapsed] = useState(false);
+
+  useEffect(() => {
+    
+    const fetchSpots = async () => {
+      try {
+        const spotsCollectionRef = collection(db, "spots");
+        const snapshot = await getDocs(spotsCollectionRef);
+        const spotsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setSpots(spotsData);
+      } catch (error) {
+        console.error("Error fetching spots:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSpots();
+  }, []);
+
+  const formatToURL = (name) =>
+    name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  
 
   const handleLogout = async () => {
     try {
@@ -51,7 +81,11 @@ const AdminNav = ({ userRole }) => {
             <NavLink
               to="/admin-dashboard/itin-table"
               className={({ isActive }) =>
-                `block py-3 px-4 rounded-lg ${isActive ? "bg-blue-700 text-white" : "hover:bg-blue-600 hover:text-white transition-colors duration-300"}`
+                `block py-3 px-4 rounded-lg ${
+                  isActive
+                    ? "bg-blue-700 text-white"
+                    : "hover:bg-blue-600 hover:text-white transition-colors duration-300"
+                }`
               }
             >
               Itineraries Table
@@ -61,37 +95,60 @@ const AdminNav = ({ userRole }) => {
           {/* Links visible only to admin */}
           {userRole === "admin" && (
             <>
-              {[
-                "Adventures & Activities",
-                "Art & Creativity",
-                "Culture & History",
-                "Events & Festivals",
-                "Family-Friendly",
-                "Food & Gastronomy",
-                "Nature & Outdoors",
-                "Seasonal Attractions",
-                "Shopping & Souvenirs",
-              ].map((category) => (
-                <li key={category}>
-                  <NavLink
-                    to={`/admin-dashboard/category/${category.toLowerCase().replace(/ & | /g, '-')}`}
-                    className={({ isActive }) =>
-                      `block py-3 px-4 rounded-lg ${isActive ? "bg-blue-700 text-white" : "hover:bg-blue-600 hover:text-white transition-colors duration-300"}`
-                    }
-                  >
-                    {category}
-                  </NavLink>
-                </li>
-              ))}
+              {/* Admin Accounts */}
               <li>
                 <NavLink
                   to="/admin-dashboard/admin-accounts"
                   className={({ isActive }) =>
-                    `block py-3 px-4 rounded-lg ${isActive ? "bg-blue-700 text-white" : "hover:bg-blue-600 hover:text-white transition-colors duration-300"}`
+                    `block py-3 px-4 rounded-lg ${
+                      isActive
+                        ? "bg-blue-700 text-white"
+                        : "hover:bg-blue-600 hover:text-white transition-colors duration-300"
+                    }`
                   }
                 >
+                  <FontAwesomeIcon icon={faUserShield} className="mr-2" />
                   Admin Accounts
                 </NavLink>
+              </li>
+
+              {/* Dynamic Spot List */}
+              <li>
+                <div
+                  className="flex justify-between items-center py-3 px-4 rounded-lg bg-white text-teal-800 cursor-pointer"
+                  onClick={() => setSpotsCollapsed(!spotsCollapsed)}
+                >
+                  <span>Manage Spots</span>
+                  <FontAwesomeIcon
+                    icon={spotsCollapsed ? faChevronDown : faChevronRight}
+                  />
+                </div>
+                {!spotsCollapsed && (
+                  <ul className="mt-2 space-y-2">
+                    {loading ? (
+                      <li className="text-center">Loading spots...</li>
+                    ) : spots.length === 0 ? (
+                      <li className="text-center">No spots available.</li>
+                    ) : (
+                      spots.map((spot) => (
+                        <li key={spot.id}>
+                          <NavLink
+                            to={`/admin-dashboard/spot/${formatToURL(spot.id)}`}
+                            className={({ isActive }) =>
+                              `block py-2 px-4 rounded-lg ${
+                                isActive
+                                  ? "bg-blue-700 text-white"
+                                  : "hover:bg-blue-600 hover:text-white transition-colors duration-300"
+                              }`
+                            }
+                          >
+                            {spot.name || "Unnamed Spot"}
+                          </NavLink>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                )}
               </li>
             </>
           )}

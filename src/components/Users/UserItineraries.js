@@ -10,6 +10,7 @@ import remarkGfm from 'remark-gfm';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+
 Modal.setAppElement('#root');
 
 const UserItineraries = () => {
@@ -129,6 +130,7 @@ const UserItineraries = () => {
   };
 
   return (
+ 
     <section className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
       <div className="bg-white shadow-2xl rounded-lg p-10 w-full max-w-4xl">
         <h2 className="text-4xl font-bold mb-8 text-center text-teal-700">Your Itineraries</h2>
@@ -141,7 +143,6 @@ const UserItineraries = () => {
                 <h3 className="text-2xl font-semibold mb-4 text-teal-800">
                   Itinerary Generated on {new Date(itinerary.timestamp?.seconds * 1000).toLocaleDateString()}
                 </h3>
-                
                 {/* Itinerary Text with Read More / Read Less */}
                 <div className="text-gray-600 leading-relaxed whitespace-pre-line mb-4">
                   <ReactMarkdown className="itinerary-content" remarkPlugins={[remarkGfm]}>

@@ -1,0 +1,18 @@
+const slugify = (text) => {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/&/g, "and")
+      .replace(/[\s]+/g, "-")
+      .replace(/[^\w-]+/g, "");
+  };
+  
+  const unslugify = (slug) => {
+    return slug
+      .toString()
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+  };
+  
+  export default { slugify, unslugify };
