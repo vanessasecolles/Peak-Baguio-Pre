@@ -18,6 +18,7 @@ const SpotDetails = () => {
   const [selectedBudget, setSelectedBudget] = useState("");
   const [budgets] = useState(Object.keys(budgetMap)); // Use display-friendly names
   const [timeOfDayOptions] = useState(["Morning", "Afternoon", "Evening"]);
+  const title = spotId.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
   useEffect(() => {
     const fetchSpotDetails = async () => {
@@ -85,7 +86,7 @@ const SpotDetails = () => {
 
   return (
     <section className="py-16 bg-gradient-to-r from-blue-100 via-teal-100 to-green-100">
-      <h2 className="text-4xl font-bold mb-8 text-center text-teal-800">Spot Details</h2>
+      <h2 className="text-4xl font-bold mb-8 text-center text-teal-800">{title}</h2>
 
       <div className="max-w-4xl mx-auto mb-8">
         <div className="mb-4">
