@@ -15,7 +15,7 @@ Modal.setAppElement("#root");
 const GenerateItinerary = () => {
   const [spots, setSpots] = useState([]);
   const [budgets, setBudgets] = useState([]);
-  const [explorePeriods] = useState(["Morning", "Afternoon", "Evening"]);
+  const [explorePeriods] = useState(["Morning", "Afternoon", "Evening", "Whole Day"]); // Added "Whole Day"
   const [formData, setFormData] = useState({
     spot: "",
     budget: "",
@@ -52,11 +52,19 @@ const GenerateItinerary = () => {
     fetchSpotsAndBudgets();
   }, []);
 
-  const fetchSpotData = async (spotId) => {
+  const fetchSpotData = async (spotId, explorePeriod) => {
     try {
-      const timeOfDayOptions = ["morning", "afternoon", "evening"];
+      let timeOfDayOptions = ["morning", "afternoon", "evening"];
       const budgetOptions = ["lowBudget", "midRange", "luxury"];
-
+  
+      if (explorePeriod.toLowerCase() === "whole day") {
+        // If Whole Day is selected, use all time periods
+        timeOfDayOptions = ["morning", "afternoon", "evening"];
+      } else {
+        // Otherwise, use only the selected period
+        timeOfDayOptions = [explorePeriod.toLowerCase()];
+      }
+  
       const activitiesPromises = timeOfDayOptions.map(async (time) => {
         const activitiesListRef = collection(
           db,
@@ -72,7 +80,7 @@ const GenerateItinerary = () => {
           activities: activitiesSnapshot.docs.map((doc) => doc.data()),
         };
       });
-
+  
       const diningPromises = budgetOptions.map(async (budget) => {
         const diningListRef = collection(
           db,
@@ -88,12 +96,12 @@ const GenerateItinerary = () => {
           diningOptions: diningSnapshot.docs.map((doc) => doc.data()),
         };
       });
-
+  
       const [activities, dining] = await Promise.all([
         Promise.all(activitiesPromises),
         Promise.all(diningPromises),
       ]);
-
+  
       return { activities, dining };
     } catch (error) {
       console.error("Error fetching spot data:", error);
@@ -101,6 +109,9 @@ const GenerateItinerary = () => {
       return { activities: [], dining: [] };
     }
   };
+
+  
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -123,26 +134,27 @@ const GenerateItinerary = () => {
         throw new Error(`Invalid budget selection: ${formData.budget}`); // Add more context to the error
       }
 
-      const { activities, dining } = await fetchSpotData(formData.spot);
+      const { activities, dining } = await fetchSpotData(formData.spot, formData.explorePeriod);
 
-      const filteredActivities = activities
-        .filter((activityGroup) => activityGroup.timeOfDay === timeOfDay)
-        .flatMap((group) => group.activities)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3);
+      const filteredActivities = formData.explorePeriod.toLowerCase() === "whole day"
+          ? activities.flatMap(group => group.activities)
+          : activities
+              .filter((activityGroup) => activityGroup.timeOfDay === timeOfDay)
+              .flatMap((group) => group.activities);
+        filteredActivities.sort(() => Math.random() - 0.5).slice(0, 5); // Increased the number for a full day
 
-      const filteredDining = dining
-        .filter((diningGroup) => diningGroup.budget === budget)
-        .flatMap((group) => group.diningOptions)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 2);
+        const filteredDining = dining
+          .filter((diningGroup) => diningGroup.budget === budget)
+          .flatMap((group) => group.diningOptions);
+        filteredDining.sort(() => Math.random() - 0.5).slice(0, 3); // Increased number for a full day
 
-      const formattedActivities = filteredActivities
-        .map((activity) => `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`)
+
+        const formattedActivities = filteredActivities
+        .map((activity) => `• ${activity.name}: ${activity.description} (Price: ₱${activity.price})`)
         .join("\n");
-
+      
       const formattedDining = filteredDining
-        .map((option) => `- **${option.name}**: ${option.description} (Price: ₱${option.price})`)
+        .map((option) => `• ${option.name}: ${option.description} (Price: ₱${option.price})`)
         .join("\n");
 
       if (!formattedActivities && !formattedDining) {
@@ -152,9 +164,9 @@ const GenerateItinerary = () => {
       const prompt = `
         You are a travel planner specializing in Baguio City. The user has provided the following details:
 
-        - *Spot*: ${formData.spot}
-        - *Time of Day*: ${formData.explorePeriod} (Morning, Afternoon, Evening)
-        - *Budget*: ${formData.budget} (Low Budget, Mid Range, Luxury)
+        - Spot: ${formData.spot}
+        - Time of Day: ${formData.explorePeriod} (can be Morning, Afternoon, Evening, or Whole Day)
+        - Budget: ${formData.budget} (Low Budget, Mid Range, Luxury)
 
         ### Activities:
         ${formattedActivities || "No activities available for the selected time of day."}
@@ -191,6 +203,7 @@ const GenerateItinerary = () => {
       const data = await response.json();
       if (data.choices && data.choices.length > 0) {
         const generatedItinerary = data.choices[0].message.content.trim();
+        
         setItinerary(generatedItinerary);
         setIsModalOpen(true);
 
