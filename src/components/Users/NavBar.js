@@ -2,25 +2,22 @@ import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
 import logo from "../../img/logoPB.png";
-import { app } from "../../firebaseConfig"; // Import initialized Firebase app
+import { app } from "../../firebaseConfig"; 
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
-// Utility to generate a key-friendly slug
 const toSlug = (name) => name.toLowerCase().replace(/ /g, "-");
-
-const auth = getAuth(app);
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [spots, setSpots] = useState([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(getAuth(app), (user) => {
       setIsLoggedIn(!!user);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -37,46 +34,89 @@ const Navbar = () => {
         console.error("Error fetching spots:", error);
       }
     };
-
     fetchSpots();
   }, []);
 
   const handleLogout = async () => {
-    try {
-      alert("Thank you for using Peak Baguio! You have been logged out.");
-      await signOut(auth);
-      window.location.href = "/user-auth"; // Redirect to login page after logout
-    } catch (err) {
-      console.error("Error logging out: ", err);
-    }
+    alert("Thank you for using Peak Baguio! You have been logged out.");
+    await signOut(getAuth(app));
+    window.location.href = "/user-auth";
   };
 
   const handleSpotClick = (spotName) => {
-    const slug = toSlug(spotName); // Convert spot name to slug
-    navigate(`/spots/${slug}`);
+    navigate(`/spots/${toSlug(spotName)}`);
+    setIsMenuOpen(false); // close mobile menu
   };
 
   return (
     <nav className="user-navbar bg-teal-700 text-white shadow-md p-4">
-      <div className="container mx-auto flex justify-between items-center">
+      {/* Make this container "relative" so the menu positions under it */}
+      <div className="container mx-auto flex justify-between items-center relative">
+        {/* Logo + Title */}
         <div className="flex items-center">
           <img src={logo} alt="Peak Baguio Logo" className="h-12 w-auto mr-4" />
           <span className="text-2xl font-bold text-yellow-400">Peak Baguio</span>
         </div>
 
-        <ul className="flex space-x-6 items-center">
+        {/* Hamburger Icon (mobile) */}
+        <button
+          className="md:hidden"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          {isMenuOpen ? (
+            /* X icon */
+            <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            /* Hamburger icon */
+            <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+              <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
+            </svg>
+          )}
+        </button>
+
+        {/* Menu Links */}
+        <ul
+          className={`
+            md:flex md:space-x-6 md:items-center
+            absolute md:static
+            top-full left-0 w-full md:w-auto
+            bg-teal-700 md:bg-transparent
+            z-50
+            mt-1 md:mt-0
+            rounded-b-lg md:rounded-none
+            shadow-lg md:shadow-none
+            p-4 md:p-0
+            space-y-4 md:space-y-0
+            transform-gpu transition-all duration-300 ease-in-out
+            ${
+              isMenuOpen
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 -translate-y-2 pointer-events-none"
+            }
+            md:opacity-100 md:translate-y-0 md:pointer-events-auto
+          `}
+        >
           <li>
             <NavLink
               to="/"
+              onClick={() => setIsMenuOpen(false)}
               className={({ isActive }) =>
-                `p-2 rounded ${isActive ? "font-bold text-yellow-300" : "hover:text-yellow-200 transition-colors duration-300"}`
+                `block p-2 rounded ${
+                  isActive
+                    ? "font-bold text-yellow-300"
+                    : "hover:text-yellow-200 transition-colors duration-300"
+                }`
               }
             >
               Home
             </NavLink>
           </li>
+
+          {/* Explore Baguio (hover on desktop) */}
           <li className="relative group">
-            <span className="p-2 rounded cursor-pointer hover:text-yellow-200 transition-colors duration-300">
+            <span className="block p-2 rounded cursor-pointer hover:text-yellow-200 transition-colors duration-300">
               Explore Baguio
             </span>
             <div className="absolute left-0 top-full mt-2 w-48 bg-white text-teal-700 shadow-md rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
@@ -93,13 +133,20 @@ const Navbar = () => {
               </ul>
             </div>
           </li>
+
+          {/* Auth Links */}
           {isLoggedIn ? (
             <>
               <li>
                 <NavLink
                   to="/my-itineraries"
+                  onClick={() => setIsMenuOpen(false)}
                   className={({ isActive }) =>
-                    `p-2 rounded ${isActive ? "font-bold text-yellow-300" : "hover:text-yellow-200 transition-colors duration-300"}`
+                    `block p-2 rounded ${
+                      isActive
+                        ? "font-bold text-yellow-300"
+                        : "hover:text-yellow-200 transition-colors duration-300"
+                    }`
                   }
                 >
                   My Itineraries
@@ -108,7 +155,7 @@ const Navbar = () => {
               <li>
                 <button
                   onClick={handleLogout}
-                  className="p-2 rounded font-bold text-yellow-300 hover:text-yellow-200 transition-colors duration-300 focus:outline-none"
+                  className="block p-2 rounded font-bold text-yellow-300 hover:text-yellow-200 transition-colors duration-300 focus:outline-none"
                 >
                   Logout
                 </button>
@@ -118,8 +165,13 @@ const Navbar = () => {
             <li>
               <NavLink
                 to="/user-auth"
+                onClick={() => setIsMenuOpen(false)}
                 className={({ isActive }) =>
-                  `p-2 rounded ${isActive ? "font-bold text-yellow-300" : "hover:text-yellow-200 transition-colors duration-300"}`
+                  `block p-2 rounded ${
+                    isActive
+                      ? "font-bold text-yellow-300"
+                      : "hover:text-yellow-200 transition-colors duration-300"
+                  }`
                 }
               >
                 Register / Login
