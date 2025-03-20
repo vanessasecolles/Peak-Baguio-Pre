@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebaseConfig';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged, 
+  sendPasswordResetEmail 
+} from 'firebase/auth';
+import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import Modal from 'react-modal';
 import { useNavigate } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 Modal.setAppElement('#root');
 
@@ -11,7 +19,6 @@ const UserAuth = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
@@ -20,14 +27,11 @@ const UserAuth = () => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsLoggedIn(!!user);
     });
-
     return () => unsubscribe();
   }, []);
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    setError(null);
-
     try {
       if (isRegister) {
         // Register User
@@ -37,7 +41,7 @@ const UserAuth = () => {
         // Create a user profile in Firestore
         await setDoc(doc(db, 'users', user.uid), {
           email: user.email,
-          role: 'user', // Set role as 'user'
+          role: 'user',
           itineraryAccessCount: 0,
         });
 
@@ -50,7 +54,33 @@ const UserAuth = () => {
         navigate('/');
       }
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Please enter your email address to reset your password.");
+      return;
+    }
+    try {
+      // Check if the email exists in the 'users' collection
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('email', '==', email)
+      );
+      const querySnapshot = await getDocs(usersQuery);
+      if (querySnapshot.empty) {
+        toast.error("No account found with this email address.");
+        return;
+      }
+
+      // Email exists, proceed with sending the reset email
+      await sendPasswordResetEmail(auth, email);
+      toast.success("Password reset email sent. Please check your inbox.");
+    } catch (err) {
+      toast.error(err.message);
     }
   };
 
@@ -59,18 +89,16 @@ const UserAuth = () => {
       await signOut(auth);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
   const toggleAuthMode = () => {
     setIsRegister((prev) => !prev);
-    setError(null);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    // Navigate to home page after successful registration
     navigate('/');
   };
 
@@ -121,7 +149,18 @@ const UserAuth = () => {
                 />
               </div>
 
-              {error && <p className="text-red-600 text-center">{error}</p>}
+              {/* Show Forgot Password option only in login mode */}
+              {!isRegister && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={handleResetPassword}
+                    className="text-teal-600 text-sm font-semibold hover:underline focus:outline-none"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -132,7 +171,7 @@ const UserAuth = () => {
             </form>
 
             <p className="text-center mt-4">
-              {isRegister ? 'Already have an account?' : 'Don\'t have an account yet?'}{' '}
+              {isRegister ? 'Already have an account?' : "Don't have an account yet?"}{' '}
               <button
                 onClick={toggleAuthMode}
                 className="text-teal-600 font-semibold hover:underline focus:outline-none"
@@ -153,7 +192,9 @@ const UserAuth = () => {
       >
         <div className="p-6">
           <h3 className="text-3xl font-bold mb-4 text-teal-700">Registration Successful!</h3>
-          <p className="text-gray-700 mb-6">You have successfully registered. You can now log in and start planning your adventure in Baguio City!</p>
+          <p className="text-gray-700 mb-6">
+            You have successfully registered. You can now log in and start planning your adventure in Baguio City!
+          </p>
           <button
             onClick={closeModal}
             className="bg-teal-600 text-white py-3 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-500"
@@ -162,6 +203,18 @@ const UserAuth = () => {
           </button>
         </div>
       </Modal>
+
+      <ToastContainer 
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 };
