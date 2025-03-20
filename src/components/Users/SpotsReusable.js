@@ -18,6 +18,7 @@ const SpotDetails = () => {
   const [selectedBudget, setSelectedBudget] = useState("");
   const [budgets] = useState(Object.keys(budgetMap)); // Use display-friendly names
   const [timeOfDayOptions] = useState(["Morning", "Afternoon", "Evening"]);
+  const [loading, setLoading] = useState(true); // New loading state
   const title = spotId.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
   useEffect(() => {
@@ -66,6 +67,8 @@ const SpotDetails = () => {
         setDining(diningData);
       } catch (error) {
         console.error("Error fetching spot details: ", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -84,6 +87,14 @@ const SpotDetails = () => {
         .flatMap((option) => option.diningOptions || [])
     : dining.flatMap((option) => option.diningOptions || []);
 
+  if (loading) {
+    return (
+      <section className="flex justify-center items-center h-screen">
+        <p>Loading...</p>
+      </section>
+    );
+  }
+
   return (
     <section className="py-16 bg-gradient-to-r from-blue-100 via-teal-100 to-green-100">
       <h2 className="text-4xl font-bold mb-8 text-center text-teal-800">{title}</h2>
@@ -101,7 +112,9 @@ const SpotDetails = () => {
           >
             <option value="">All Times of Day</option>
             {timeOfDayOptions.map((time) => (
-              <option key={time} value={time}>{time}</option>
+              <option key={time} value={time}>
+                {time}
+              </option>
             ))}
           </select>
         </div>
@@ -118,7 +131,9 @@ const SpotDetails = () => {
           >
             <option value="">All Budgets</option>
             {budgets.map((budget) => (
-              <option key={budget} value={budget}>{budget}</option>
+              <option key={budget} value={budget}>
+                {budget}
+              </option>
             ))}
           </select>
         </div>

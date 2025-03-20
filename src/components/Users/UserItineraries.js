@@ -10,7 +10,6 @@ import remarkGfm from 'remark-gfm';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-
 Modal.setAppElement('#root');
 
 const UserItineraries = () => {
@@ -20,6 +19,7 @@ const UserItineraries = () => {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itineraryToDelete, setItineraryToDelete] = useState(null);
+  const [loading, setLoading] = useState(true); // New loading state
   const auth = getAuth();
   const user = auth.currentUser;
 
@@ -37,9 +37,13 @@ const UserItineraries = () => {
           ...doc.data(),
         }));
         setItineraries(fetchedItineraries);
+        setLoading(false); // Data loaded
       });
 
       return () => unsubscribe();
+    } else {
+      // If no user, stop loading immediately
+      setLoading(false);
     }
   }, [user]);
 
@@ -88,7 +92,6 @@ const UserItineraries = () => {
           planned: true,
           feedback: feedback,
         });
-
         toast.success('Thank you for your feedback!');
       } catch (error) {
         toast.error('Failed to submit feedback. Please try again.');
@@ -105,7 +108,6 @@ const UserItineraries = () => {
       await updateDoc(itineraryRef, {
         used: true,
       });
-
       toast.success('Itinerary marked as used!');
     } catch (error) {
       toast.error('Failed to mark as used. Please try again.');
@@ -129,13 +131,23 @@ const UserItineraries = () => {
     setItineraryToDelete(null);
   };
 
+  // Render a loading indicator until data is fetched
+  if (loading) {
+    return (
+      <section className="flex justify-center items-center min-h-screen bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
+        <p className="text-2xl text-teal-700">Loading itineraries...</p>
+      </section>
+    );
+  }
+
   return (
- 
     <section className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
       <div className="bg-white shadow-2xl rounded-lg p-10 w-full max-w-4xl">
         <h2 className="text-4xl font-bold mb-8 text-center text-teal-700">Your Itineraries</h2>
         {itineraries.length === 0 ? (
-          <p className="text-center text-lg text-gray-700">No itineraries found. Generate your first itinerary to get started!</p>
+          <p className="text-center text-lg text-gray-700">
+            No itineraries found. Generate your first itinerary to get started!
+          </p>
         ) : (
           <div className="space-y-6">
             {itineraries.map((itinerary) => (

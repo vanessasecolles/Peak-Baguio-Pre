@@ -13,6 +13,7 @@ import ItinerarySteps from '../components/Users/ItinerarySteps';
 
 const Home = () => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // New loading state
   const navigate = useNavigate();
   const itineraryRef = useRef(null);
 
@@ -20,6 +21,7 @@ const Home = () => {
     // Check if user is authenticated
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setLoading(false); // Set loading to false once auth state is determined
     });
 
     return () => unsubscribe();
@@ -28,6 +30,15 @@ const Home = () => {
   const scrollToItinerary = () => {
     itineraryRef.current.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Render a loading indicator until Firebase is done loading
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-100">
@@ -58,7 +69,6 @@ const Home = () => {
         </div>
       </section>
 
-     
       {/* Generate Itinerary Section */}
       <div ref={itineraryRef}>
         {user ? (
@@ -66,20 +76,30 @@ const Home = () => {
         ) : (
           <div className="text-center py-16">
             <h2 className="text-3xl font-bold text-teal-700">
-              Please <button onClick={() => navigate('/user-auth')} className="text-teal-600 underline hover:text-teal-800">log in</button> to generate an itinerary.
+              Please{' '}
+              <button
+                onClick={() => navigate('/user-auth')}
+                className="text-teal-600 underline hover:text-teal-800"
+              >
+                log in
+              </button>{' '}
+              to generate an itinerary.
             </h2>
           </div>
         )}
       </div>
-      <ItinerarySteps/>
-     
-      <ExploreBaguio/>
+
+      <ItinerarySteps />
+      <ExploreBaguio />
 
       <footer className="bg-teal-800 text-white py-8 mt-16">
         <div className="text-center">
           <p className="text-sm">&copy; {new Date().getFullYear()} Peak Baguio. All rights reserved.</p>
           <p className="text-sm mt-2">
-            Partner with us: <a href="mailto:peakbaguio@gmail.com" className="text-teal-400 hover:underline">peakbaguio@gmail.com</a>
+            Partner with us:{' '}
+            <a href="mailto:peakbaguio@gmail.com" className="text-teal-400 hover:underline">
+              peakbaguio@gmail.com
+            </a>
           </p>
         </div>
       </footer>
