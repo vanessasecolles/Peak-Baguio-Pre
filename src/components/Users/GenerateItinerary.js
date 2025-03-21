@@ -15,7 +15,7 @@ Modal.setAppElement("#root");
 const GenerateItinerary = () => {
   const [spots, setSpots] = useState([]);
   const [budgets, setBudgets] = useState([]);
-  const [explorePeriods] = useState(["Morning", "Afternoon", "Evening", "Whole Day"]); // Added "Whole Day"
+  const [explorePeriods] = useState(["Morning", "Afternoon", "Evening", "Whole Day"]);
   const [formData, setFormData] = useState({
     spot: "",
     budget: "",
@@ -26,11 +26,10 @@ const GenerateItinerary = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch spots and budgets
+  // Fetch spots and budgets from Firestore
   useEffect(() => {
     const fetchSpotsAndBudgets = async () => {
       try {
-        // Fetch spots
         const spotsSnapshot = await getDocs(collection(db, "spots"));
         const spotsData = spotsSnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -38,7 +37,6 @@ const GenerateItinerary = () => {
         }));
         setSpots(spotsData);
 
-        // Fetch budgets
         const budgetsDoc = await getDoc(doc(db, "itineraryFields", "fields"));
         if (budgetsDoc.exists()) {
           setBudgets(budgetsDoc.data().budgets || []);
@@ -56,15 +54,13 @@ const GenerateItinerary = () => {
     try {
       let timeOfDayOptions = ["morning", "afternoon", "evening"];
       const budgetOptions = ["lowBudget", "midRange", "luxury"];
-  
-      if (explorePeriod.toLowerCase() === "whole day") {
-        // If Whole Day is selected, use all time periods
-        timeOfDayOptions = ["morning", "afternoon", "evening"];
-      } else {
-        // Otherwise, use only the selected period
+
+      // If "Whole Day" is selected, include all time segments;
+      // otherwise, limit to the selected period.
+      if (explorePeriod.toLowerCase() !== "whole day") {
         timeOfDayOptions = [explorePeriod.toLowerCase()];
       }
-  
+
       const activitiesPromises = timeOfDayOptions.map(async (time) => {
         const activitiesListRef = collection(
           db,
@@ -80,7 +76,7 @@ const GenerateItinerary = () => {
           activities: activitiesSnapshot.docs.map((doc) => doc.data()),
         };
       });
-  
+
       const diningPromises = budgetOptions.map(async (budget) => {
         const diningListRef = collection(
           db,
@@ -96,12 +92,12 @@ const GenerateItinerary = () => {
           diningOptions: diningSnapshot.docs.map((doc) => doc.data()),
         };
       });
-  
+
       const [activities, dining] = await Promise.all([
         Promise.all(activitiesPromises),
         Promise.all(diningPromises),
       ]);
-  
+
       return { activities, dining };
     } catch (error) {
       console.error("Error fetching spot data:", error);
@@ -110,75 +106,189 @@ const GenerateItinerary = () => {
     }
   };
 
-  
-  
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Map user-friendly input to Firestore field keys
       const budgetMap = {
         "Low Budget": "lowBudget",
         "Mid Range": "midRange",
         "Luxury": "luxury",
       };
 
-      console.log("Selected Budget:", formData.budget); // Debugging
-
       const timeOfDay = formData.explorePeriod.toLowerCase();
       const budget = budgetMap[formData.budget];
-
       if (!budget) {
-        throw new Error(`Invalid budget selection: ${formData.budget}`); // Add more context to the error
+        throw new Error(`Invalid budget selection: ${formData.budget}`);
       }
 
-      const { activities, dining } = await fetchSpotData(formData.spot, formData.explorePeriod);
+      const { activities, dining } = await fetchSpotData(
+        formData.spot,
+        formData.explorePeriod
+      );
 
-      const filteredActivities = formData.explorePeriod.toLowerCase() === "whole day"
-          ? activities.flatMap(group => group.activities)
-          : activities
-              .filter((activityGroup) => activityGroup.timeOfDay === timeOfDay)
-              .flatMap((group) => group.activities);
-        filteredActivities.sort(() => Math.random() - 0.5).slice(0, 5); // Increased the number for a full day
+      // Filter and shuffle dining
+      const filteredDining = dining
+        .filter((diningGroup) => diningGroup.budget === budget)
+        .flatMap((group) => group.diningOptions);
+      const selectedDining = filteredDining.sort(() => Math.random() - 0.5).slice(0, 3);
 
-        const filteredDining = dining
-          .filter((diningGroup) => diningGroup.budget === budget)
-          .flatMap((group) => group.diningOptions);
-        filteredDining.sort(() => Math.random() - 0.5).slice(0, 3); // Increased number for a full day
-
-
-        const formattedActivities = filteredActivities
-        .map((activity) => `• ${activity.name}: ${activity.description} (Price: ₱${activity.price})`)
-        .join("\n");
-      
-      const formattedDining = filteredDining
-        .map((option) => `• ${option.name}: ${option.description} (Price: ₱${option.price})`)
+      // Format dining for the prompt
+      const formattedDining = selectedDining
+        .map(
+          (option) =>
+            `- **${option.name}**: ${option.description} (Price: ₱${option.price})`
+        )
         .join("\n");
 
-      if (!formattedActivities && !formattedDining) {
-        throw new Error("No suitable options for the selected time of day and budget.");
+      let prompt = "";
+
+      // ---------------------------------------
+      // IF WHOLE DAY: Separate into Morning/Afternoon/Evening
+      // ---------------------------------------
+      if (formData.explorePeriod.toLowerCase() === "whole day") {
+        const morningGroup = activities.find((group) => group.timeOfDay === "morning") || { activities: [] };
+        const afternoonGroup = activities.find((group) => group.timeOfDay === "afternoon") || { activities: [] };
+        const eveningGroup = activities.find((group) => group.timeOfDay === "evening") || { activities: [] };
+
+        const morningActivities = morningGroup.activities.sort(() => Math.random() - 0.5).slice(0, 5);
+        const afternoonActivities = afternoonGroup.activities.sort(() => Math.random() - 0.5).slice(0, 5);
+        const eveningActivities = eveningGroup.activities.sort(() => Math.random() - 0.5).slice(0, 5);
+
+        const formattedMorningActivities = morningActivities
+          .map(
+            (activity) =>
+              `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`
+          )
+          .join("\n");
+
+        const formattedAfternoonActivities = afternoonActivities
+          .map(
+            (activity) =>
+              `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`
+          )
+          .join("\n");
+
+        const formattedEveningActivities = eveningActivities
+          .map(
+            (activity) =>
+              `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`
+          )
+          .join("\n");
+
+        // Prompt using Markdown headings
+        prompt = `
+You are a travel planner specializing in Baguio City.
+
+Please produce your response in **Markdown** format with the following structure and headings:
+-----------------------------------------------------------------------
+## Title
+One-line itinerary title
+
+## Overview
+
+A short overview paragraph
+
+## Morning
+
+1. Activity 1 (Price: ₱xxx)
+2. Activity 2 (Price: ₱xxx)
+
+## Afternoon
+
+1. Activity 1 (Price: ₱xxx)
+2. Activity 2 (Price: ₱xxx)
+
+## Evening
+
+1. Activity 1 (Price: ₱xxx)
+2. Activity 2 (Price: ₱xxx)
+
+## Dining Options
+
+1. Dining Option 1 (Price: ₱xxx)
+2. Dining Option 2 (Price: ₱xxx)
+
+END
+-----------------------------------------------------------------------
+
+Now, strictly follow that Markdown format (no extra blank lines) and use the following data:
+
+- Spot: ${formData.spot}
+- Time of Day: ${formData.explorePeriod}
+- Budget: ${formData.budget}
+
+### Morning Activities:
+${formattedMorningActivities || "No morning activities available."}
+
+### Afternoon Activities:
+${formattedAfternoonActivities || "No afternoon activities available."}
+
+### Evening Activities:
+${formattedEveningActivities || "No evening activities available."}
+
+### Dining Options:
+${formattedDining || "No dining options available."}
+`;
+      } 
+      // ---------------------------------------
+      // IF SINGLE PERIOD (Morning, Afternoon, Evening)
+      // ---------------------------------------
+      else {
+        const filteredActivities = activities
+          .filter((activityGroup) => activityGroup.timeOfDay === timeOfDay)
+          .flatMap((group) => group.activities);
+        const selectedActivities = filteredActivities.sort(() => Math.random() - 0.5).slice(0, 5);
+
+        // Format activities for the prompt
+        const formattedActivities = selectedActivities
+          .map(
+            (activity) =>
+              `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`
+          )
+          .join("\n");
+
+        prompt = `
+You are a travel planner specializing in Baguio City.
+
+Please produce your response in **Markdown** format with the following structure and headings:
+-----------------------------------------------------------------------
+## Title
+One-line itinerary title
+
+## Overview
+
+A short overview paragraph
+
+## Activities
+
+1. Activity 1 (Price: ₱xxx)
+2. Activity 2 (Price: ₱xxx)
+
+## Dining Options
+
+1. Dining Option 1 (Price: ₱xxx)
+2. Dining Option 2 (Price: ₱xxx)
+
+END
+-----------------------------------------------------------------------
+
+Now, strictly follow that Markdown format (no extra blank lines) and use the following data:
+
+- Spot: ${formData.spot}
+- Time of Day: ${formData.explorePeriod}
+- Budget: ${formData.budget}
+
+### Activities:
+${formattedActivities || "No activities available."}
+
+### Dining Options:
+${formattedDining || "No dining options available."}
+`;
       }
 
-      const prompt = `
-        You are a travel planner specializing in Baguio City. The user has provided the following details:
-
-        - Spot: ${formData.spot}
-        - Time of Day: ${formData.explorePeriod} (can be Morning, Afternoon, Evening, or Whole Day)
-        - Budget: ${formData.budget} (Low Budget, Mid Range, Luxury)
-
-        ### Activities:
-        ${formattedActivities || "No activities available for the selected time of day."}
-
-        ### Dining Options:
-        ${formattedDining || "No dining options available for the selected budget."}
-
-        Your task:
-        - Create a detailed itinerary tailored strictly to the selected spot (${formData.spot}), time of day (${formData.explorePeriod}), and budget (${formData.budget}).
-        - Ensure the itinerary is engaging and well-structured, starting with activities for the selected time of day, followed by dining suggestions.
-      `;
-
+      // Call OpenAI API
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -188,8 +298,14 @@ const GenerateItinerary = () => {
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
           messages: [
-            { role: "system", content: "You are an AI that generates travel itineraries." },
-            { role: "user", content: prompt },
+            {
+              role: "system",
+              content: "You are an AI that generates travel itineraries.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
           ],
           max_tokens: 800,
           temperature: 0.9,
@@ -202,11 +318,16 @@ const GenerateItinerary = () => {
 
       const data = await response.json();
       if (data.choices && data.choices.length > 0) {
-        const generatedItinerary = data.choices[0].message.content.trim();
-        
+        // Post-process to remove extra blank lines if needed
+        let generatedItinerary = data.choices[0].message.content.trim();
+        // If you want to preserve some spacing, you can remove or adjust the next lines:
+        generatedItinerary = generatedItinerary.replace(/\n{3,}/g, "\n\n"); // Keep at most 2 consecutive newlines
+        generatedItinerary = generatedItinerary.replace(/[ \t]+$/gm, "");   // Remove trailing spaces
+
         setItinerary(generatedItinerary);
         setIsModalOpen(true);
 
+        // Save to Firestore if user is authenticated
         const auth = getAuth();
         const user = auth.currentUser;
         if (user) {
@@ -248,10 +369,15 @@ const GenerateItinerary = () => {
 
   return (
     <section className="p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
-      <h2 className="text-4xl font-bold mb-8 text-center text-teal-700">Generate Your Itinerary</h2>
-      <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto">
+      <h2 className="text-4xl font-bold mb-4 text-center text-teal-700">
+        Generate Your Itinerary
+      </h2>
+
+      <form onSubmit={handleSubmit} className="space-y-4 max-w-4xl mx-auto">
         <div>
-          <label htmlFor="spot" className="block font-semibold mb-3 text-teal-800">Choose a Spot</label>
+          <label htmlFor="spot" className="block font-semibold mb-3 text-teal-800">
+            Choose a Spot
+          </label>
           <select
             id="spot"
             name="spot"
@@ -262,13 +388,17 @@ const GenerateItinerary = () => {
           >
             <option value="">Select a Spot</option>
             {spots.map((spot) => (
-              <option key={spot.id} value={spot.id}>{spot.name}</option>
+              <option key={spot.id} value={spot.id}>
+                {spot.name}
+              </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label htmlFor="budget" className="block font-semibold mb-3 text-teal-800">Select Your Budget</label>
+          <label htmlFor="budget" className="block font-semibold mb-3 text-teal-800">
+            Select Your Budget
+          </label>
           <select
             id="budget"
             name="budget"
@@ -285,7 +415,9 @@ const GenerateItinerary = () => {
         </div>
 
         <div>
-          <label htmlFor="explorePeriod" className="block font-semibold mb-3 text-teal-800">Explore Period</label>
+          <label htmlFor="explorePeriod" className="block font-semibold mb-3 text-teal-800">
+            Explore Period
+          </label>
           <select
             id="explorePeriod"
             name="explorePeriod"
@@ -296,7 +428,9 @@ const GenerateItinerary = () => {
           >
             <option value="">Choose Explore Period</option>
             {explorePeriods.map((explorePeriod) => (
-              <option key={explorePeriod} value={explorePeriod}>{explorePeriod}</option>
+              <option key={explorePeriod} value={explorePeriod}>
+                {explorePeriod}
+              </option>
             ))}
           </select>
         </div>
@@ -307,7 +441,9 @@ const GenerateItinerary = () => {
           disabled={loading}
         >
           <FontAwesomeIcon icon={faCheckCircle} />
-          <span>{loading ? "Generating..." : "Generate Itinerary"}</span>
+          <span className="ml-2">
+            {loading ? "Generating..." : "Generate Itinerary"}
+          </span>
         </button>
       </form>
 
@@ -319,8 +455,11 @@ const GenerateItinerary = () => {
         overlayClassName="modal-overlay fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-black bg-opacity-50"
       >
         <div className="p-6">
-          <h3 className="text-3xl font-bold mb-6 text-teal-700">Your AI-Generated Itinerary</h3>
+          <h3 className="text-3xl font-bold mb-6 text-teal-700">
+            Your AI-Generated Itinerary
+          </h3>
           <div className="p-4 border border-teal-300 rounded-lg whitespace-pre-line bg-gray-50 text-gray-800 overflow-y-auto max-h-[60vh]">
+            {/* Render the Markdown content */}
             <ReactMarkdown>{itinerary}</ReactMarkdown>
           </div>
           <div className="flex justify-end space-x-4 mt-6">
@@ -329,14 +468,14 @@ const GenerateItinerary = () => {
               className="bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-500"
             >
               <FontAwesomeIcon icon={faTimes} />
-              <span>Close</span>
+              <span className="ml-2">Close</span>
             </button>
             <button
               onClick={handleVisitMyItineraries}
               className="bg-teal-700 text-white py-3 px-6 rounded-lg hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-500"
             >
               <FontAwesomeIcon icon={faArrowRight} />
-              <span>View My Itineraries</span>
+              <span className="ml-2">View My Itineraries</span>
             </button>
           </div>
         </div>
