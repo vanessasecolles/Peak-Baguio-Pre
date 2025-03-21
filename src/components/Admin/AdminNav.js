@@ -111,6 +111,21 @@ const AdminNav = ({ userRole }) => {
                   Admin Accounts
                 </NavLink>
               </li>
+              <li>
+                <NavLink
+                  to="/admin-dashboard/user-accounts"
+                  className={({ isActive }) =>
+                    `block py-3 px-4 rounded-lg ${
+                      isActive
+                        ? "bg-blue-700 text-white"
+                        : "hover:bg-blue-600 hover:text-white transition-colors duration-300"
+                    }`
+                  }
+                >
+                  <FontAwesomeIcon icon={faUserShield} className="mr-2" />
+                  User Accounts
+                </NavLink>
+              </li>
 
               {/* Dynamic Spot List */}
               <li>

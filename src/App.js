@@ -34,6 +34,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminItinerariesTable from "./components/Admin/AdminItinerariesTable";
 import AdminAccounts from "./components/Admin/AdminAccounts";
+import UserAccounts from "./components/Admin/UserAccounts";
 import AdminCategory from "./components/Admin/AdminCategory";
 import SpotDetails from "./components/Users/SpotsReusable";
 import ExploreBaguio from "./components/Users/ExploreBaguio";
@@ -246,6 +247,7 @@ const App = () => {
                     <Route path="add-admin" element={<AddAdmin />} />
                     <Route path="itin-table" element={<AdminItinerariesTable />} />
                     <Route path="admin-accounts" element={<AdminAccounts />} />
+                    <Route path="user-accounts" element={<UserAccounts />} />
                     <Route path="category/:categoryName" element={<AdminCategory />} />
                     {/* Redirect /admin-dashboard to /admin-dashboard/highlights */}
                     <Route path="" element={<AdminDashboard />} />
