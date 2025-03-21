@@ -27,6 +27,7 @@ import HighlightsAdmin from "./components/Admin/HighlightsAdmin";
 import PopularSpotsAdmin from "./components/Admin/PopularSpotsAdmin";
 import FeaturedActivitiesAdmin from "./components/Admin/FeaturedActivitiesAdmin";
 import CategoriesAdmin from "./components/Admin/CategoriesAdmin";
+import ChangePassword from "./components/Users/ChangePassword";
 import GenerateItineraryAdmin from "./components/Admin/GenerateItineraryAdmin"; // New Component
 import AddAdmin from "./components/Admin/AddAdmin"; // AddAdmin Component
 import AdminLogin from "./pages/AdminLogin";
@@ -193,6 +194,20 @@ const App = () => {
                   </>
                 }
               />
+           
+            
+                {/* Other user routes */}
+                <Route
+                  path="/change-password"
+                  element={
+                    <>
+                      <Navbar />
+                      <ChangePassword />
+                    </>
+                  }
+                />
+             
+          
             <Route
               path="/user-auth"
               element={
