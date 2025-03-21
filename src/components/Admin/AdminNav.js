@@ -196,6 +196,23 @@ const AdminNav = () => {
                 </NavLink>
               </li>
 
+              <li>
+            <NavLink
+              to="/admin-dashboard/add-spots"
+              onClick={closeMobileMenu}
+              className={({ isActive }) =>
+                `block py-3 px-4 rounded-lg ${
+                  isActive
+                    ? "bg-blue-700 text-white"
+                    : "hover:bg-blue-600 hover:text-white transition-colors duration-300"
+                }`
+              }
+            >
+              Add Spots
+            </NavLink>
+          </li>
+
+
               {/* Manage Spots (collapsible submenu) */}
               <li>
                 <div

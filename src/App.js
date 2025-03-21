@@ -20,6 +20,7 @@ import FoodGastronomy from "./components/Users/FoodGastronomy";
 import NatureOutdoors from "./components/Users/NatureOutdoors";
 import SeasonalAttractions from "./components/Users/SeasonalAttractions";
 import ShoppingSouvenirs from "./components/Users/ShoppingSouvenirs";
+import ChangePassword from "./components/Users/ChangePassword";
 
 // Admin Components
 import AdminNav from "./components/Admin/AdminNav"; // Admin Sidebar Navigation
@@ -27,7 +28,6 @@ import HighlightsAdmin from "./components/Admin/HighlightsAdmin";
 import PopularSpotsAdmin from "./components/Admin/PopularSpotsAdmin";
 import FeaturedActivitiesAdmin from "./components/Admin/FeaturedActivitiesAdmin";
 import CategoriesAdmin from "./components/Admin/CategoriesAdmin";
-import ChangePassword from "./components/Users/ChangePassword";
 import GenerateItineraryAdmin from "./components/Admin/GenerateItineraryAdmin"; // New Component
 import AddAdmin from "./components/Admin/AddAdmin"; // AddAdmin Component
 import AdminLogin from "./pages/AdminLogin";
@@ -39,6 +39,7 @@ import AdminCategory from "./components/Admin/AdminCategory";
 import SpotDetails from "./components/Users/SpotsReusable";
 import ExploreBaguio from "./components/Users/ExploreBaguio";
 import DynamicSpotAdmin from "./components/Admin/DynamicSpotAdmin";
+import AddSpot from "./components/Admin/AddSpot";
 
 const App = () => {
   const [userRole, setUserRole] = useState(null); // null, "user", "admin"
@@ -243,6 +244,7 @@ const App = () => {
                 <div className="flex-1 p-8">
                   <Routes>
                     <Route path="generate-itinerary" element={<GenerateItineraryAdmin />} />
+                    <Route path="add-spots" element={<AddSpot/>} />
                     <Route path="spot/:spotId" element={<DynamicSpotAdmin />} />
                     <Route path="add-admin" element={<AddAdmin />} />
                     <Route path="itin-table" element={<AdminItinerariesTable />} />
