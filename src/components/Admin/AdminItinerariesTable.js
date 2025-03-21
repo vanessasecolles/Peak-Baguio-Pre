@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../../firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
@@ -8,81 +8,82 @@ import * as XLSX from 'xlsx';
 const AdminItinerariesTable = () => {
   const [itineraries, setItineraries] = useState([]);
   const [filteredItineraries, setFilteredItineraries] = useState([]);
-  const [filter, setFilter] = useState('all');
+  const [budgetFilter, setBudgetFilter] = useState('all');
+  const [periodFilter, setPeriodFilter] = useState('all');
+  const reportRef = useRef(null);
 
   useEffect(() => {
-    // Fetch itineraries from Firestore
-    const itinerariesCollection = collection(db, 'itineraries');
-    const unsubscribe = onSnapshot(itinerariesCollection, (snapshot) => {
-      const fetchedItineraries = snapshot.docs.map((doc) => ({
+    const unsubscribe = onSnapshot(collection(db, 'itineraries'), snapshot => {
+      const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setItineraries(fetchedItineraries);
-      setFilteredItineraries(fetchedItineraries);
+      setItineraries(data);
+      setFilteredItineraries(data);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Handle filter changes
-  const handleFilterChange = (e) => {
-    const value = e.target.value;
-    setFilter(value);
+  useEffect(() => {
+    applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [budgetFilter, periodFilter, itineraries]);
 
-    if (value === 'all') {
-      setFilteredItineraries(itineraries);
-    } else if (value === 'used') {
-      setFilteredItineraries(itineraries.filter((itinerary) => itinerary.used));
-    } else if (value === 'planned') {
-      setFilteredItineraries(itineraries.filter((itinerary) => itinerary.planned && !itinerary.used));
-    } else if (value === 'unused') {
-      setFilteredItineraries(itineraries.filter((itinerary) => !itinerary.used && !itinerary.planned));
-    } else if (value === 'liked') {
-      setFilteredItineraries(itineraries.filter((itinerary) => itinerary.feedback === 'liked'));
-    } else if (value === 'unliked') {
-      setFilteredItineraries(itineraries.filter((itinerary) => itinerary.feedback === 'disliked'));
+  const applyFilters = () => {
+    let filtered = itineraries;
+
+    if (budgetFilter !== 'all') {
+      filtered = filtered.filter(item => item.budget === budgetFilter);
     }
+
+    if (periodFilter !== 'all') {
+      filtered = filtered.filter(item => item.explorePeriod === periodFilter);
+    }
+
+    setFilteredItineraries(filtered);
   };
 
-  // Handle printing the report
   const handlePrint = () => {
+    const printContent = reportRef.current.innerHTML;
+    const originalContent = document.body.innerHTML;
+
+    document.body.innerHTML = printContent;
     window.print();
+    document.body.innerHTML = originalContent;
+    window.location.reload();
   };
 
-  // Handle downloading the report as a PDF
   const handleDownloadPDF = () => {
-    const input = document.getElementById('report');
-    html2canvas(input).then((canvas) => {
+    html2canvas(reportRef.current, { scale: 2 }).then(canvas => {
+      const pdf = new jsPDF('p', 'mm', 'a4');
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF();
-      pdf.addImage(imgData, 'PNG', 10, 10, 190, 0);
+      const imgWidth = 190;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 10;
+
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
       pdf.save('ItinerariesReport.pdf');
     });
   };
 
-  // Handle downloading the report as an image
-  const handleDownloadImage = () => {
-    const input = document.getElementById('report');
-    html2canvas(input).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = imgData;
-      link.download = 'ItinerariesReport.png';
-      link.click();
-    });
-  };
-
-  // Handle downloading the report as an Excel file
   const handleDownloadExcel = () => {
-    const worksheetData = filteredItineraries.map((itinerary) => ({
-      Date: new Date(itinerary.timestamp?.seconds * 1000).toLocaleDateString(),
-      Itinerary: itinerary.itinerary,
-      Status: itinerary.used ? 'Used' : itinerary.planned ? 'Planned' : 'Unused',
-      Feedback: itinerary.feedback ? (itinerary.feedback === 'liked' ? 'Liked' : 'Unliked') : 'No Feedback',
-      Budget: itinerary.budget || 'N/A',
-      Duration: itinerary.duration || 'N/A',
-      Interests: itinerary.interests?.join(', ') || 'N/A',
+    const worksheetData = filteredItineraries.map(({ budget, explorePeriod, itinerary, spot }) => ({
+      Budget: budget || 'N/A',
+      ExplorePeriod: explorePeriod || 'N/A',
+      Itinerary: itinerary || 'N/A',
+      Spot: spot || 'N/A',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
@@ -94,71 +95,79 @@ const AdminItinerariesTable = () => {
   return (
     <div className="p-6 bg-white shadow-lg rounded-lg">
       <h2 className="text-2xl font-bold mb-4">Admin Itineraries Table</h2>
-      <div className="mb-4">
-        <label htmlFor="filter" className="mr-2 font-semibold">Filter:</label>
-        <select id="filter" value={filter} onChange={handleFilterChange} className="p-2 border border-gray-300 rounded-md">
-          <option value="all">All</option>
-          <option value="used">Used</option>
-          <option value="planned">Planned</option>
-          <option value="unused">Unused</option>
-          <option value="liked">Liked</option>
-          <option value="unliked">Unliked</option>
-        </select>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 mb-4">
+        <div>
+          <label className="font-semibold mr-2">Budget:</label>
+          <select
+            value={budgetFilter}
+            onChange={(e) => setBudgetFilter(e.target.value)}
+            className="p-2 border border-gray-300 rounded-md"
+          >
+            <option value="all">All</option>
+            <option value="Luxury Range">Luxury Range</option>
+            <option value="Mid Range">Mid Range</option>
+            <option value="Low Range">Low Range</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="font-semibold mr-2">Explore Period:</label>
+          <select
+            value={periodFilter}
+            onChange={(e) => setPeriodFilter(e.target.value)}
+            className="p-2 border border-gray-300 rounded-md"
+          >
+            <option value="all">All</option>
+            <option value="Morning">Morning</option>
+            <option value="Afternoon">Afternoon</option>
+            <option value="Evening">Evening</option>
+          </select>
+        </div>
       </div>
 
-      <div id="report" className="overflow-x-auto">
+      {/* Table */}
+      <div ref={reportRef} className="overflow-x-auto">
         <table className="min-w-full bg-white">
           <thead>
             <tr>
-              <th className="py-2 px-4 border-b border-gray-300 text-left">Date</th>
-              <th className="py-2 px-4 border-b border-gray-300 text-left">Itinerary</th>
-              <th className="py-2 px-4 border-b border-gray-300 text-left">Status</th>
-              <th className="py-2 px-4 border-b border-gray-300 text-left">Feedback</th>
-              <th className="py-2 px-4 border-b border-gray-300 text-left">Choices</th>
+              <th className="py-2 px-4 border-b">Budget</th>
+              <th className="py-2 px-4 border-b">Explore Period</th>
+              <th className="py-2 px-4 border-b">Itinerary</th>
+              <th className="py-2 px-4 border-b">Spot</th>
             </tr>
           </thead>
           <tbody>
-            {filteredItineraries.map((itinerary) => (
-              <tr key={itinerary.id}>
-                <td className="py-2 px-4 border-b border-gray-300">{new Date(itinerary.timestamp?.seconds * 1000).toLocaleDateString()}</td>
-                <td className="py-2 px-4 border-b border-gray-300 whitespace-pre-wrap">{itinerary.itinerary}</td>
-                <td className="py-2 px-4 border-b border-gray-300">
-                  {itinerary.used ? 'Used' : itinerary.planned ? 'Planned' : 'Unused'}
-                </td>
-                <td className="py-2 px-4 border-b border-gray-300">
-                  {itinerary.feedback ? itinerary.feedback === 'liked' ? 'Liked' : 'Unliked' : 'No Feedback'}
-                </td>
-                <td className="py-2 px-4 border-b border-gray-300 whitespace-pre-wrap">
-                  Budget: {itinerary.budget || 'N/A'}, Duration: {itinerary.duration || 'N/A'}, Interests: {itinerary.interests?.join(', ') || 'N/A'}
-                </td>
+            {filteredItineraries.map(({ id, budget, explorePeriod, itinerary, spot }) => (
+              <tr key={id}>
+                <td className="py-2 px-4 border-b">{budget || 'N/A'}</td>
+                <td className="py-2 px-4 border-b">{explorePeriod || 'N/A'}</td>
+                <td className="py-2 px-4 border-b whitespace-pre-wrap">{itinerary || 'N/A'}</td>
+                <td className="py-2 px-4 border-b">{spot || 'N/A'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="flex justify-end space-x-4 mt-6">
+      {/* Buttons */}
+      <div className="flex flex-wrap justify-end gap-3 mt-6">
         <button
           onClick={handlePrint}
-          className="bg-teal-600 text-white py-3 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-500 flex items-center space-x-2 transition duration-300 ease-in-out"
+          className="bg-teal-600 text-white py-2 px-4 rounded hover:bg-teal-700 transition"
         >
           Print Report
         </button>
         <button
           onClick={handleDownloadPDF}
-          className="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500 flex items-center space-x-2 transition duration-300 ease-in-out"
+          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
         >
           Download as PDF
         </button>
         <button
-          onClick={handleDownloadImage}
-          className="bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-500 flex items-center space-x-2 transition duration-300 ease-in-out"
-        >
-          Download as Image
-        </button>
-        <button
           onClick={handleDownloadExcel}
-          className="bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-500 flex items-center space-x-2 transition duration-300 ease-in-out"
+          className="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition"
         >
           Download as Excel
         </button>
