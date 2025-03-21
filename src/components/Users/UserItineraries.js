@@ -19,7 +19,7 @@ const UserItineraries = () => {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itineraryToDelete, setItineraryToDelete] = useState(null);
-  const [loading, setLoading] = useState(true); // New loading state
+  const [loading, setLoading] = useState(true);
   const auth = getAuth();
   const user = auth.currentUser;
 
@@ -37,12 +37,11 @@ const UserItineraries = () => {
           ...doc.data(),
         }));
         setItineraries(fetchedItineraries);
-        setLoading(false); // Data loaded
+        setLoading(false);
       });
 
       return () => unsubscribe();
     } else {
-      // If no user, stop loading immediately
       setLoading(false);
     }
   }, [user]);
@@ -131,7 +130,6 @@ const UserItineraries = () => {
     setItineraryToDelete(null);
   };
 
-  // Render a loading indicator until data is fetched
   if (loading) {
     return (
       <section className="flex justify-center items-center min-h-screen bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
@@ -141,22 +139,23 @@ const UserItineraries = () => {
   }
 
   return (
-    <section className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
-      <div className="bg-white shadow-2xl rounded-lg p-10 w-full max-w-4xl">
-        <h2 className="text-4xl font-bold mb-8 text-center text-teal-700">Your Itineraries</h2>
+    <section className="flex flex-col items-center justify-center min-h-screen p-4 sm:p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
+      <div className="bg-white shadow-2xl rounded-lg p-4 sm:p-6 md:p-10 w-full max-w-4xl">
+        <h2 className="text-xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-8 text-center text-teal-700">
+          Your Itineraries
+        </h2>
         {itineraries.length === 0 ? (
-          <p className="text-center text-lg text-gray-700">
+          <p className="text-center text-base sm:text-lg text-gray-700">
             No itineraries found. Generate your first itinerary to get started!
           </p>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {itineraries.map((itinerary) => (
-              <div key={itinerary.id} className="p-6 border border-teal-300 rounded-lg bg-gray-50">
-                <h3 className="text-2xl font-semibold mb-4 text-teal-800">
+              <div key={itinerary.id} className="p-4 sm:p-6 border border-teal-300 rounded-lg bg-gray-50">
+                <h3 className="text-lg sm:text-2xl font-semibold mb-2 sm:mb-4 text-teal-800">
                   Itinerary Generated on {new Date(itinerary.timestamp?.seconds * 1000).toLocaleDateString()}
                 </h3>
-                {/* Itinerary Text with Read More / Read Less */}
-                <div className="text-gray-600 leading-relaxed whitespace-pre-line mb-4">
+                <div className="text-gray-600 leading-relaxed whitespace-pre-line mb-2 sm:mb-4">
                   <ReactMarkdown className="itinerary-content" remarkPlugins={[remarkGfm]}>
                     {expandedItineraries[itinerary.id] || itinerary.itinerary.length <= 300
                       ? itinerary.itinerary
@@ -172,10 +171,11 @@ const UserItineraries = () => {
                   </button>
                 )}
 
-                {/* Display Google Maps Links */}
                 {itinerary.coordinates && itinerary.coordinates.length > 1 && (
-                  <div className="my-4">
-                    <h4 className="text-lg font-semibold text-teal-800 mb-2">Google Maps Directions:</h4>
+                  <div className="my-2 sm:my-4">
+                    <h4 className="text-base sm:text-lg font-semibold text-teal-800 mb-1 sm:mb-2">
+                      Google Maps Directions:
+                    </h4>
                     {itinerary.coordinates.map((location, index) => {
                       if (index < itinerary.coordinates.length - 1) {
                         const start = location.name;
@@ -196,11 +196,10 @@ const UserItineraries = () => {
                   </div>
                 )}
 
-                {/* Action Buttons */}
-                <div className="flex justify-end space-x-4 mt-4">
+                <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-2 sm:gap-4 mt-4">
                   <button
                     onClick={() => handlePrint(itinerary.itinerary)}
-                    className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-500 flex items-center space-x-2 transition duration-300 ease-in-out"
+                    className="w-full sm:w-auto bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-500 flex items-center justify-center space-x-2 transition duration-300 ease-in-out"
                   >
                     <FontAwesomeIcon icon={faPrint} />
                     <span>Print</span>
@@ -208,7 +207,7 @@ const UserItineraries = () => {
                   {!itinerary.planned && (
                     <button
                       onClick={() => handlePlanToUse(itinerary)}
-                      className="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-500 flex items-center space-x-2 transition duration-300 ease-in-out"
+                      className="w-full sm:w-auto bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-500 flex items-center justify-center space-x-2 transition duration-300 ease-in-out"
                       title="Set this itinerary as planned for future travel."
                     >
                       <FontAwesomeIcon icon={faCheck} />
@@ -218,7 +217,7 @@ const UserItineraries = () => {
                   {itinerary.planned && !itinerary.used && (
                     <button
                       onClick={() => handleMarkAsUsed(itinerary)}
-                      className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500 flex items-center space-x-2 transition duration-300 ease-in-out"
+                      className="w-full sm:w-auto bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500 flex items-center justify-center space-x-2 transition duration-300 ease-in-out"
                       title="Mark this itinerary as used."
                     >
                       <FontAwesomeIcon icon={faClipboardCheck} />
@@ -228,7 +227,7 @@ const UserItineraries = () => {
                   {!itinerary.planned && (
                     <button
                       onClick={() => handleDeleteConfirmation(itinerary)}
-                      className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500 flex items-center space-x-2 transition duration-300 ease-in-out"
+                      className="w-full sm:w-auto bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500 flex items-center justify-center space-x-2 transition duration-300 ease-in-out"
                     >
                       <FontAwesomeIcon icon={faTrash} />
                       <span>Delete</span>
@@ -241,50 +240,52 @@ const UserItineraries = () => {
         )}
       </div>
 
-      {/* Feedback Modal */}
       <Modal
         isOpen={isFeedbackModalOpen}
         onRequestClose={() => setIsFeedbackModalOpen(false)}
         contentLabel="Feedback Modal"
-        className="modal-content bg-white p-8 rounded-lg shadow-2xl max-w-md mx-auto"
+        className="modal-content bg-white p-4 sm:p-8 rounded-lg shadow-2xl w-11/12 max-w-md mx-auto"
         overlayClassName="modal-overlay fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-black bg-opacity-50"
       >
-        <h3 className="text-3xl font-bold mb-6 text-teal-700 text-center">Did you like this itinerary?</h3>
-        <div className="flex justify-center space-x-6">
+        <h3 className="text-xl sm:text-3xl font-bold mb-4 sm:mb-6 text-teal-700 text-center">
+          Did you like this itinerary?
+        </h3>
+        <div className="flex flex-col sm:flex-row justify-center items-stretch gap-2 sm:gap-6">
           <button
             onClick={() => handleFeedback("liked")}
-            className="bg-teal-600 text-white py-3 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
+            className="w-full sm:w-auto bg-teal-600 text-white py-3 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-500 transition duration-300 ease-in-out"
           >
             Yes
           </button>
           <button
             onClick={() => handleFeedback("disliked")}
-            className="bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500 transition duration-300 ease-in-out"
+            className="w-full sm:w-auto bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500 transition duration-300 ease-in-out"
           >
             No
           </button>
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={isDeleteModalOpen}
         onRequestClose={closeDeleteModal}
         contentLabel="Delete Confirmation Modal"
-        className="modal-content bg-white p-8 rounded-lg shadow-2xl max-w-md mx-auto"
+        className="modal-content bg-white p-4 sm:p-8 rounded-lg shadow-2xl w-11/12 max-w-md mx-auto"
         overlayClassName="modal-overlay fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-black bg-opacity-50"
       >
-        <h3 className="text-3xl font-bold mb-6 text-red-700 text-center">Are you sure you want to delete this itinerary?</h3>
-        <div className="flex justify-center space-x-6">
+        <h3 className="text-xl sm:text-3xl font-bold mb-4 sm:mb-6 text-red-700 text-center">
+          Are you sure you want to delete this itinerary?
+        </h3>
+        <div className="flex flex-col sm:flex-row justify-center items-stretch gap-2 sm:gap-6">
           <button
             onClick={() => handleDelete(itineraryToDelete.id)}
-            className="bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500 transition duration-300 ease-in-out"
+            className="w-full sm:w-auto bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500 transition duration-300 ease-in-out"
           >
             Yes, Delete
           </button>
           <button
             onClick={closeDeleteModal}
-            className="bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-500 transition duration-300 ease-in-out"
+            className="w-full sm:w-auto bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-500 transition duration-300 ease-in-out"
           >
             Cancel
           </button>
