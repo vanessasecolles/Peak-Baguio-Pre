@@ -247,7 +247,7 @@ const GenerateItinerary = () => {
   };
 
   return (
-    <section className="min-h-screen p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
+    <section className="p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
       <h2 className="text-4xl font-bold mb-8 text-center text-teal-700">Generate Your Itinerary</h2>
       <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto">
         <div>
