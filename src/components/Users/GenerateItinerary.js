@@ -408,9 +408,9 @@ ${formattedDining || "No dining options available."}
             required
           >
             <option value="">Choose a Budget</option>
-            <option value="Low Budget">Low Budget</option>
-            <option value="Mid Range">Mid Range</option>
-            <option value="Luxury">Luxury</option>
+            <option value="Low Budget">Low Budget (100-500 PHP per person)</option>
+            <option value="Mid Range">Mid Range (500-1,000 PHP per person)</option>
+            <option value="Luxury">Luxury (1,000 and up per person)</option>
           </select>
         </div>
 
