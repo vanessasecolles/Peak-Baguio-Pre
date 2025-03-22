@@ -9,6 +9,7 @@ const AddSpot = () => {
     name: "",
     description: "",
     image: "",
+    parkingArea: "",
   });
 
   const handleChange = (e) => {
@@ -18,31 +19,29 @@ const AddSpot = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { name, description, image } = spot;
+    const { name, description, image, parkingArea } = spot;
 
-    if (!name || !description || !image) {
+    if (!name || !description || !image || !parkingArea) {
       toast.error("All fields are required.");
       return;
     }
 
     try {
-      // Use the spot name as the document ID
       await setDoc(doc(db, "spots", name), {
         name,
         description,
         image,
+        parkingArea,
       });
 
       toast.success("Spot added successfully!");
 
-      // Clear the form
-      setSpot({ name: "", description: "", image: "" });
+      setSpot({ name: "", description: "", image: "", parkingArea: "" });
 
-      // Delay (2 seconds) and refresh
       setTimeout(() => {
         window.location.reload();
       }, 2000);
-      
+
     } catch (error) {
       console.error("Error adding spot: ", error);
       toast.error("Failed to add spot.");
@@ -93,6 +92,20 @@ const AddSpot = () => {
               name="image"
               placeholder="Enter image URL"
               value={spot.image}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Parking Area
+            </label>
+            <input
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              name="parkingArea"
+              placeholder="Enter parking area details"
+              value={spot.parkingArea}
               onChange={handleChange}
               required
             />
