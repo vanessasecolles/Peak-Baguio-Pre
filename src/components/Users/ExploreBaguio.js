@@ -31,13 +31,13 @@ const ExploreBaguio = () => {
         </p>
       ) : (
         <div className="max-w-6xl mx-auto px-4">
-          {/* Replace horizontal scroll with a grid layout */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {/* Flex container with wrapping and centered items */}
+          <div className="flex flex-wrap justify-center gap-6">
             {spots.map((spot) => (
               <Link
                 key={spot.id}
-                to={`/spots/${spot.id}`} // Use spot ID in the URL
-                className="group rounded-lg shadow-xl overflow-hidden bg-white transform transition-transform duration-500 hover:scale-105"
+                to={`/spots/${spot.id}`}
+                className="group w-96 rounded-lg shadow-xl overflow-hidden bg-white transform transition-transform duration-500 hover:scale-105"
               >
                 {spot.image && (
                   <div className="relative w-full h-48 overflow-hidden">
