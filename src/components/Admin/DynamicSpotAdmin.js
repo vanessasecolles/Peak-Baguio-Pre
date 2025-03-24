@@ -119,10 +119,10 @@ const DynamicSpotAdmin = () => {
     const { name, value } = e.target;
     const setter = currentItem ? setCurrentItem : setNewItem;
     setter((prev) => ({
-        ...prev,
-        [name]: value,
-      }));    
-    };
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const resetForm = () => {
     setCurrentItem(null);
@@ -155,9 +155,12 @@ const DynamicSpotAdmin = () => {
             <FontAwesomeIcon icon={faEdit} /> Edit Spot Details
           </button>
         </div>
-        <img src={spotImage} alt={formattedSpotId} className="mt-4 rounded w-full h-60 object-cover"/>
-        <p className="mt-2 text-gray-700">{spotDescription}</p>
-        <p className="mt-1 text-gray-500"><strong>Parking Area:</strong> {spotParkingArea}</p>
+        <img src={spotImage} alt={formattedSpotId} className="mt-4 rounded w-full h-60 object-cover" />
+        <p className="mt-2 text-gray-700" style={{ whiteSpace: "pre-line" }}>{spotDescription}</p>
+        <p className="mt-1 text-gray-500">
+          <strong>Parking Area:</strong>{" "}
+          <span style={{ whiteSpace: "pre-line" }}>{spotParkingArea}</span>
+        </p>
       </div>
 
       <div className="flex justify-between mb-4">
@@ -186,7 +189,7 @@ const DynamicSpotAdmin = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map(item => (
             <div key={item.id} className="border rounded p-4">
-              <img src={item.image} alt={item.name} className="w-full h-40 object-cover rounded mb-2"/>
+              <img src={item.image} alt={item.name} className="w-full h-40 object-cover rounded mb-2" />
               <h3 className="font-bold">{item.name}</h3>
               <p>{item.description}</p>
               <p className="text-sm">Starts at: {item.price}</p>
@@ -201,13 +204,32 @@ const DynamicSpotAdmin = () => {
         </div>
       )}
 
-       {/* Edit Spot Modal */}
-       <Modal isOpen={isSpotModalOpen} onRequestClose={() => setIsSpotModalOpen(false)} className="bg-white rounded-lg shadow-lg p-6 max-w-lg mx-auto" overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      {/* Edit Spot Modal */}
+      <Modal isOpen={isSpotModalOpen} onRequestClose={() => setIsSpotModalOpen(false)} className="bg-white rounded-lg shadow-lg p-6 max-w-lg mx-auto" overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
         <h3 className="font-bold mb-4">Edit Spot Details</h3>
-        <input className="w-full p-2 border rounded mb-3" placeholder="Spot Image URL" value={spotImage} onChange={(e) => setSpotImage(e.target.value)} />
-        <textarea className="w-full p-2 border rounded mb-3" rows={3} placeholder="Spot Description" value={spotDescription} onChange={(e) => setSpotDescription(e.target.value)} />
-        <input className="w-full p-2 border rounded mb-3" placeholder="Parking Area" value={spotParkingArea} onChange={(e) => setSpotParkingArea(e.target.value)} />
-        <button className="bg-teal-600 text-white px-4 py-2 rounded float-right" onClick={saveSpotDetails}>Save Changes</button>
+        <input 
+          className="w-full p-2 border rounded mb-3" 
+          placeholder="Spot Image URL" 
+          value={spotImage} 
+          onChange={(e) => setSpotImage(e.target.value)} 
+        />
+        <textarea 
+          className="w-full p-2 border rounded mb-3" 
+          rows={3} 
+          placeholder="Spot Description" 
+          value={spotDescription} 
+          onChange={(e) => setSpotDescription(e.target.value)} 
+        />
+        <textarea 
+          className="w-full p-2 border rounded mb-3" 
+          rows={3} 
+          placeholder="Parking Area (Press Enter for new line)" 
+          value={spotParkingArea} 
+          onChange={(e) => setSpotParkingArea(e.target.value)} 
+        />
+        <button className="bg-teal-600 text-white px-4 py-2 rounded float-right" onClick={saveSpotDetails}>
+          Save Changes
+        </button>
       </Modal>
 
       <Modal
@@ -256,7 +278,6 @@ const DynamicSpotAdmin = () => {
           value={currentItem ? currentItem.price : newItem.price}
           onChange={handleInputChange}
         />
-
 
         <button
           className="bg-teal-600 text-white px-4 py-2 rounded float-right"

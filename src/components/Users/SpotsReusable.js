@@ -117,10 +117,14 @@ const SpotDetails = () => {
             className="w-full rounded-lg shadow-md h-64 object-cover mb-4"
           />
         )}
-        <p className="text-lg text-gray-700 mb-2">{description}</p>
         <p className="text-md text-gray-600 font-semibold">
-          <span className="text-teal-800">Parking Area: </span>{parkingArea}
-        </p>
+  <span className="text-teal-800 block mb-2">Parking Area:</span>
+  <ul className="list-disc list-inside">
+    {parkingArea.split("\n").map((line, idx) => (
+      <li key={idx}>{line}</li>
+    ))}
+  </ul>
+</p>
       </div>
 
       <div className="max-w-4xl mx-auto mb-8 px-6">
