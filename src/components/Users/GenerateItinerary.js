@@ -134,11 +134,11 @@ const GenerateItinerary = () => {
         .flatMap((group) => group.diningOptions);
       const selectedDining = filteredDining.sort(() => Math.random() - 0.5).slice(0, 3);
 
-      // Format dining for the prompt
+      // Format dining for the prompt (without bold)
       const formattedDining = selectedDining
         .map(
           (option) =>
-            `- **${option.name}**: ${option.description} (Price: ₱${option.price})`
+            `- ${option.name}: ${option.description} (Price: ₱${option.price})`
         )
         .join("\n");
 
@@ -159,54 +159,49 @@ const GenerateItinerary = () => {
         const formattedMorningActivities = morningActivities
           .map(
             (activity) =>
-              `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`
+              `- ${activity.name}: ${activity.description} (Price: ₱${activity.price})`
           )
           .join("\n");
 
         const formattedAfternoonActivities = afternoonActivities
           .map(
             (activity) =>
-              `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`
+              `- ${activity.name}: ${activity.description} (Price: ₱${activity.price})`
           )
           .join("\n");
 
         const formattedEveningActivities = eveningActivities
           .map(
             (activity) =>
-              `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`
+              `- ${activity.name}: ${activity.description} (Price: ₱${activity.price})`
           )
           .join("\n");
 
-        // Prompt using Markdown headings
+        // Prompt using Markdown headings; note that only Title, Overview and Explore Periods are expected to be bolded.
         prompt = `
 You are a travel planner specializing in Baguio City.
 
-Please produce your response in **Markdown** format with the following structure and headings:
+Please produce your response in Markdown format with the following structure and headings. Only the headings for **Title**, **Overview**, and **Explore Periods** should be bolded. Do not bold the individual activity or dining items.
 -----------------------------------------------------------------------
-## Title
+## **Title**
 One-line itinerary title
 
-## Overview
+## **Overview**
+A short summary of the activity areas and dining options.
 
-A short overview paragraph
-
-## Morning
-
+## **Morning**
 1. Activity 1 (Price: ₱xxx)
 2. Activity 2 (Price: ₱xxx)
 
-## Afternoon
-
+## **Afternoon**
 1. Activity 1 (Price: ₱xxx)
 2. Activity 2 (Price: ₱xxx)
 
-## Evening
-
+## **Evening**
 1. Activity 1 (Price: ₱xxx)
 2. Activity 2 (Price: ₱xxx)
 
-## Dining Options
-
+## **Dining Options**
 1. Dining Option 1 (Price: ₱xxx)
 2. Dining Option 2 (Price: ₱xxx)
 
@@ -216,7 +211,7 @@ END
 Now, strictly follow that Markdown format (no extra blank lines) and use the following data:
 
 - Spot: ${formData.spot}
-- Time of Day: ${formData.explorePeriod}
+- Explore Period: ${formData.explorePeriod}
 - Budget: ${formData.budget}
 
 ### Morning Activities:
@@ -241,33 +236,30 @@ ${formattedDining || "No dining options available."}
           .flatMap((group) => group.activities);
         const selectedActivities = filteredActivities.sort(() => Math.random() - 0.5).slice(0, 5);
 
-        // Format activities for the prompt
+        // Format activities for the prompt (without bold)
         const formattedActivities = selectedActivities
           .map(
             (activity) =>
-              `- **${activity.name}**: ${activity.description} (Price: ₱${activity.price})`
+              `- ${activity.name}: ${activity.description} (Price: ₱${activity.price})`
           )
           .join("\n");
 
         prompt = `
 You are a travel planner specializing in Baguio City.
 
-Please produce your response in **Markdown** format with the following structure and headings:
+Please produce your response in Markdown format with the following structure and headings. Only the headings for **Title**, **Overview**, and **Explore Period** should be bolded. Do not bold the individual activity or dining items.
 -----------------------------------------------------------------------
-## Title
+## **Title**
 One-line itinerary title
 
-## Overview
+## **Overview**
+A short summary of the activity areas and dining options.
 
-A short overview paragraph
-
-## Activities
-
+## **Activities**
 1. Activity 1 (Price: ₱xxx)
 2. Activity 2 (Price: ₱xxx)
 
-## Dining Options
-
+## **Dining Options**
 1. Dining Option 1 (Price: ₱xxx)
 2. Dining Option 2 (Price: ₱xxx)
 
@@ -277,7 +269,7 @@ END
 Now, strictly follow that Markdown format (no extra blank lines) and use the following data:
 
 - Spot: ${formData.spot}
-- Time of Day: ${formData.explorePeriod}
+- Explore Period: ${formData.explorePeriod}
 - Budget: ${formData.budget}
 
 ### Activities:
@@ -320,9 +312,8 @@ ${formattedDining || "No dining options available."}
       if (data.choices && data.choices.length > 0) {
         // Post-process to remove extra blank lines if needed
         let generatedItinerary = data.choices[0].message.content.trim();
-        // If you want to preserve some spacing, you can remove or adjust the next lines:
-        generatedItinerary = generatedItinerary.replace(/\n{3,}/g, "\n\n"); // Keep at most 2 consecutive newlines
-        generatedItinerary = generatedItinerary.replace(/[ \t]+$/gm, "");   // Remove trailing spaces
+        generatedItinerary = generatedItinerary.replace(/\n{3,}/g, "\n\n");
+        generatedItinerary = generatedItinerary.replace(/[ \t]+$/gm, "");
 
         setItinerary(generatedItinerary);
         setIsModalOpen(true);
@@ -459,7 +450,6 @@ ${formattedDining || "No dining options available."}
             Your AI-Generated Itinerary
           </h3>
           <div className="p-4 border border-teal-300 rounded-lg whitespace-pre-line bg-gray-50 text-gray-800 overflow-y-auto max-h-[60vh]">
-            {/* Render the Markdown content */}
             <ReactMarkdown>{itinerary}</ReactMarkdown>
           </div>
           <div className="flex justify-end space-x-4 mt-6">
