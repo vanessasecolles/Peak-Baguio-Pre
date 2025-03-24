@@ -21,6 +21,7 @@ import NatureOutdoors from "./components/Users/NatureOutdoors";
 import SeasonalAttractions from "./components/Users/SeasonalAttractions";
 import ShoppingSouvenirs from "./components/Users/ShoppingSouvenirs";
 import ChangePassword from "./components/Users/ChangePassword";
+import ScrollToTop from "./pages/ScrollToTop";
 
 // Admin Components
 import AdminNav from "./components/Admin/AdminNav"; // Admin Sidebar Navigation
@@ -74,6 +75,7 @@ const App = () => {
 
   return (
     <Router>
+        <ScrollToTop />
       <Routes>
         {/* User Routes */}
         {userRole !== "admin" && (
