@@ -70,7 +70,7 @@ const AddSpot = () => {
 
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Description
+              Description (Press Enter for new line)
             </label>
             <textarea
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
@@ -99,14 +99,15 @@ const AddSpot = () => {
 
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Parking Area
+              Parking Area (Press Enter for new line)
             </label>
-            <input
+            <textarea
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
               name="parkingArea"
-              placeholder="Enter parking area details"
+              placeholder="Enter parking area details (press Enter for new line)"
               value={spot.parkingArea}
               onChange={handleChange}
+              rows={3}
               required
             />
           </div>
