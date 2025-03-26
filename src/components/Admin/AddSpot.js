@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import { toast, ToastContainer } from "react-toastify";
+import ReactQuill from "react-quill"; 
+import "react-quill/dist/quill.snow.css"; // Import Quill's default styling
 import "react-toastify/dist/ReactToastify.css";
 
 const AddSpot = () => {
@@ -12,8 +14,30 @@ const AddSpot = () => {
     parkingArea: "",
   });
 
+  // Quill toolbar configuration (bold, italic, underline, etc.)
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, false] }],        // Heading levels
+      ["bold", "italic", "underline"],    // Text style buttons
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link"],                           // Link insert
+      ["clean"],                          // Remove formatting
+    ],
+  };
+
   const handleChange = (e) => {
+    // For normal text inputs (name, image), we do the usual:
     setSpot({ ...spot, [e.target.name]: e.target.value });
+  };
+
+  const handleDescriptionChange = (value) => {
+    // For the Quill editor, 'value' is an HTML string
+    setSpot((prev) => ({ ...prev, description: value }));
+  };
+
+  const handleParkingChange = (value) => {
+    // Similarly for the parking area
+    setSpot((prev) => ({ ...prev, parkingArea: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -27,6 +51,7 @@ const AddSpot = () => {
     }
 
     try {
+      // Storing HTML strings from Quill in Firestore
       await setDoc(doc(db, "spots", name), {
         name,
         description,
@@ -35,13 +60,11 @@ const AddSpot = () => {
       });
 
       toast.success("Spot added successfully!");
-
       setSpot({ name: "", description: "", image: "", parkingArea: "" });
 
       setTimeout(() => {
         window.location.reload();
       }, 2000);
-
     } catch (error) {
       console.error("Error adding spot: ", error);
       toast.error("Failed to add spot.");
@@ -54,6 +77,7 @@ const AddSpot = () => {
         <h2 className="text-2xl font-bold text-teal-700 mb-6">Add New Spot</h2>
 
         <form onSubmit={handleSubmit}>
+          {/* Spot Name */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Spot Name
@@ -68,21 +92,21 @@ const AddSpot = () => {
             />
           </div>
 
+          {/* Description using ReactQuill */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Description (Press Enter for new line)
+              Description
             </label>
-            <textarea
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
-              name="description"
-              placeholder="Enter spot description"
+            <ReactQuill
+              theme="snow"
               value={spot.description}
-              onChange={handleChange}
-              rows={4}
-              required
+              onChange={handleDescriptionChange}
+              modules={quillModules}
+              placeholder="Describe the spot (bold, italic, bullet points, etc.)"
             />
           </div>
 
+          {/* Image URL */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Image URL
@@ -97,18 +121,17 @@ const AddSpot = () => {
             />
           </div>
 
+          {/* Parking Area using ReactQuill */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Parking Area (Press Enter for new line)
+              Parking Area
             </label>
-            <textarea
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
-              name="parkingArea"
-              placeholder="Enter parking area details (press Enter for new line)"
+            <ReactQuill
+              theme="snow"
               value={spot.parkingArea}
-              onChange={handleChange}
-              rows={3}
-              required
+              onChange={handleParkingChange}
+              modules={quillModules}
+              placeholder="Provide parking area details"
             />
           </div>
 

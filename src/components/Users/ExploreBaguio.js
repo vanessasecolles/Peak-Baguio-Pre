@@ -53,7 +53,18 @@ const ExploreBaguio = () => {
                   <h3 className="text-2xl font-semibold mb-2 text-teal-800 group-hover:text-teal-600 transition-colors duration-300">
                     {spot.name}
                   </h3>
-                  <p className="text-gray-700 mb-4">{spot.description}</p>
+                  {/* Render description as HTML */}
+                  <div
+                    className="text-gray-700 mb-4"
+                    dangerouslySetInnerHTML={{ __html: spot.description }}
+                  />
+                  {/* Render parking area as HTML if available */}
+                  {/* {spot.parkingArea && (
+                    <div className="text-gray-700">
+                      <strong>Parking Area: </strong>
+                      <span dangerouslySetInnerHTML={{ __html: spot.parkingArea }} />
+                    </div>
+                  )} */}
                 </div>
               </Link>
             ))}

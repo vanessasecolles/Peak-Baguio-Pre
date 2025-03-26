@@ -16,6 +16,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTrash, faPlus, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 Modal.setAppElement("#root");
 
@@ -48,6 +50,17 @@ const DynamicSpotAdmin = () => {
   const formattedSpotId = spotId
     ? spotId.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
     : "";
+
+  // Configure ReactQuill toolbar modules.
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, false] }],
+      ["bold", "italic", "underline"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link"],
+      ["clean"],
+    ],
+  };
 
   useEffect(() => {
     if (!spotId) {
@@ -136,11 +149,15 @@ const DynamicSpotAdmin = () => {
   };
 
   const saveSpotDetails = async () => {
-    await setDoc(doc(db, "spots", formattedSpotId), {
-      description: spotDescription,
-      image: spotImage,
-      parkingArea: spotParkingArea,
-    }, { merge: true });
+    await setDoc(
+      doc(db, "spots", formattedSpotId),
+      {
+        description: spotDescription,
+        image: spotImage,
+        parkingArea: spotParkingArea,
+      },
+      { merge: true }
+    );
 
     setIsSpotModalOpen(false);
     toast.success("Spot details updated successfully!");
@@ -148,55 +165,117 @@ const DynamicSpotAdmin = () => {
 
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
+      {/* Spot Details Section */}
       <div className="bg-white shadow-md rounded p-4 mb-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">{formattedSpotId}</h2>
-          <button className="bg-yellow-500 text-white px-3 py-1 rounded" onClick={() => setIsSpotModalOpen(true)}>
+          <button
+            className="bg-yellow-500 text-white px-3 py-1 rounded"
+            onClick={() => setIsSpotModalOpen(true)}
+          >
             <FontAwesomeIcon icon={faEdit} /> Edit Spot Details
           </button>
         </div>
-        <img src={spotImage} alt={formattedSpotId} className="mt-4 rounded w-full h-60 object-cover" />
-        <p className="mt-2 text-gray-700" style={{ whiteSpace: "pre-line" }}>{spotDescription}</p>
-        <p className="mt-1 text-gray-500">
+        <img
+          src={spotImage}
+          alt={formattedSpotId}
+          className="mt-4 rounded w-full h-60 object-cover"
+        />
+        {/* Render Spot Description as HTML */}
+        <div
+          className="mt-2 text-gray-700"
+          dangerouslySetInnerHTML={{ __html: spotDescription }}
+        />
+        <div className="mt-1 text-gray-500">
           <strong>Parking Area:</strong>{" "}
-          <span style={{ whiteSpace: "pre-line" }}>{spotParkingArea}</span>
-        </p>
+          <span dangerouslySetInnerHTML={{ __html: spotParkingArea }} />
+        </div>
       </div>
 
+      {/* Tabs for Activities / Dining */}
       <div className="flex justify-between mb-4">
         <div>
-          <button className={`px-4 py-2 rounded mr-2 ${currentType === "activities" ? "bg-blue-500 text-white" : "bg-gray-300"}`} onClick={() => { setCurrentType("activities"); setSubType("morning"); }}>Activities</button>
-          <button className={`px-4 py-2 rounded ${currentType === "dining" ? "bg-blue-500 text-white" : "bg-gray-300"}`} onClick={() => { setCurrentType("dining"); setSubType("luxury"); }}>Dining</button>
+          <button
+            className={`px-4 py-2 rounded mr-2 ${
+              currentType === "activities" ? "bg-blue-500 text-white" : "bg-gray-300"
+            }`}
+            onClick={() => {
+              setCurrentType("activities");
+              setSubType("morning");
+            }}
+          >
+            Activities
+          </button>
+          <button
+            className={`px-4 py-2 rounded ${
+              currentType === "dining" ? "bg-blue-500 text-white" : "bg-gray-300"
+            }`}
+            onClick={() => {
+              setCurrentType("dining");
+              setSubType("luxury");
+            }}
+          >
+            Dining
+          </button>
         </div>
         <div className="flex gap-2">
-          {(currentType === "activities" ? ["morning", "afternoon", "evening"] : ["luxury", "midRange", "lowBudget"]).map((type) => (
-            <button key={type} className={`px-3 py-1 rounded ${subType === type ? "bg-green-500 text-white" : "bg-gray-300"}`} onClick={() => setSubType(type)}>
+          {(currentType === "activities"
+            ? ["morning", "afternoon", "evening"]
+            : ["luxury", "midRange", "lowBudget"]
+          ).map((type) => (
+            <button
+              key={type}
+              className={`px-3 py-1 rounded ${
+                subType === type ? "bg-green-500 text-white" : "bg-gray-300"
+              }`}
+              onClick={() => setSubType(type)}
+            >
               {tabLabels[type]}
             </button>
           ))}
         </div>
       </div>
+
+      {/* Button to Add Item */}
       <div className="flex justify-end mb-4">
-        <button 
-          className="bg-blue-500 text-white px-4 py-2 rounded" 
+        <button
+          className="bg-blue-500 text-white px-4 py-2 rounded"
           onClick={() => openModal()}
         >
-          <FontAwesomeIcon icon={faPlus} /> Add {currentType === "activities" ? "Activity" : "Dining Option"}
+          <FontAwesomeIcon icon={faPlus} /> Add{" "}
+          {currentType === "activities" ? "Activity" : "Dining Option"}
         </button>
       </div>
 
-      {loading ? <p>Loading...</p> : (
+      {/* Items List */}
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map(item => (
+          {items.map((item) => (
             <div key={item.id} className="border rounded p-4">
-              <img src={item.image} alt={item.name} className="w-full h-40 object-cover rounded mb-2" />
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-40 object-cover rounded mb-2"
+              />
               <h3 className="font-bold">{item.name}</h3>
-              <p>{item.description}</p>
+              {/* Render item description as HTML */}
+              <div
+                className="text-gray-700"
+                dangerouslySetInnerHTML={{ __html: item.description }}
+              />
               <p className="text-sm">Starts at: {item.price}</p>
-              <button className="bg-yellow-500 text-white px-3 py-1 rounded mr-2" onClick={() => openModal(item)}>
+              <button
+                className="bg-yellow-500 text-white px-3 py-1 rounded mr-2"
+                onClick={() => openModal(item)}
+              >
                 <FontAwesomeIcon icon={faEdit} />
               </button>
-              <button className="bg-red-500 text-white px-3 py-1 rounded" onClick={() => handleDelete(item.id)}>
+              <button
+                className="bg-red-500 text-white px-3 py-1 rounded"
+                onClick={() => handleDelete(item.id)}
+              >
                 <FontAwesomeIcon icon={faTrash} />
               </button>
             </div>
@@ -204,34 +283,43 @@ const DynamicSpotAdmin = () => {
         </div>
       )}
 
-      {/* Edit Spot Modal */}
-      <Modal isOpen={isSpotModalOpen} onRequestClose={() => setIsSpotModalOpen(false)} className="bg-white rounded-lg shadow-lg p-6 max-w-lg mx-auto" overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      {/* Edit Spot Modal with ReactQuill Editors */}
+      <Modal
+        isOpen={isSpotModalOpen}
+        onRequestClose={() => setIsSpotModalOpen(false)}
+        className="bg-white rounded-lg shadow-lg p-6 max-w-lg mx-auto"
+        overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+      >
         <h3 className="font-bold mb-4">Edit Spot Details</h3>
-        <input 
-          className="w-full p-2 border rounded mb-3" 
-          placeholder="Spot Image URL" 
-          value={spotImage} 
-          onChange={(e) => setSpotImage(e.target.value)} 
+        <input
+          className="w-full p-2 border rounded mb-3"
+          placeholder="Spot Image URL"
+          value={spotImage}
+          onChange={(e) => setSpotImage(e.target.value)}
         />
-        <textarea 
-          className="w-full p-2 border rounded mb-3" 
-          rows={3} 
-          placeholder="Spot Description" 
-          value={spotDescription} 
-          onChange={(e) => setSpotDescription(e.target.value)} 
+        <ReactQuill
+          theme="snow"
+          value={spotDescription}
+          onChange={setSpotDescription}
+          modules={quillModules}
+          placeholder="Spot Description"
         />
-        <textarea 
-          className="w-full p-2 border rounded mb-3" 
-          rows={3} 
-          placeholder="Parking Area (Press Enter for new line)" 
-          value={spotParkingArea} 
-          onChange={(e) => setSpotParkingArea(e.target.value)} 
+        <ReactQuill
+          theme="snow"
+          value={spotParkingArea}
+          onChange={setSpotParkingArea}
+          modules={quillModules}
+          placeholder="Parking Area (Press Enter for new line)"
         />
-        <button className="bg-teal-600 text-white px-4 py-2 rounded float-right" onClick={saveSpotDetails}>
+        <button
+          className="bg-teal-600 text-white px-4 py-2 rounded float-right mt-4"
+          onClick={saveSpotDetails}
+        >
           Save Changes
         </button>
       </Modal>
 
+      {/* Item Modal with ReactQuill for Item Description */}
       <Modal
         isOpen={isModalOpen}
         onRequestClose={() => {
@@ -242,7 +330,9 @@ const DynamicSpotAdmin = () => {
         overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
       >
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold">{currentItem ? "Edit Item" : "Add New Item"}</h3>
+          <h3 className="text-xl font-bold">
+            {currentItem ? "Edit Item" : "Add New Item"}
+          </h3>
           <button onClick={() => setIsModalOpen(false)}>
             <FontAwesomeIcon icon={faTimes} size="lg" />
           </button>
@@ -255,13 +345,19 @@ const DynamicSpotAdmin = () => {
           value={currentItem ? currentItem.name : newItem.name}
           onChange={handleInputChange}
         />
-        <textarea
-          className="w-full p-2 border rounded mb-3"
-          name="description"
-          placeholder="Item Description"
+        {/* Replace textarea with ReactQuill for item description */}
+        <ReactQuill
+          theme="snow"
           value={currentItem ? currentItem.description : newItem.description}
-          onChange={handleInputChange}
-          rows={3}
+          onChange={(value) => {
+            if (currentItem) {
+              setCurrentItem((prev) => ({ ...prev, description: value }));
+            } else {
+              setNewItem((prev) => ({ ...prev, description: value }));
+            }
+          }}
+          modules={quillModules}
+          placeholder="Item Description"
         />
         <input
           className="w-full p-2 border rounded mb-3"

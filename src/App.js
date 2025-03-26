@@ -272,7 +272,7 @@ const App = () => {
 
         {/* Redirect any unmatched admin path to admin login */}
         {userRole === "admin" && (
-          <Route path="*" element={<Navigate to="/admin-dashboard/highlights" />} />
+          <Route path="*" element={<Navigate to="/admin-dashboard" />} />
         )}
 
         {/* Redirect any unmatched user path to home */}

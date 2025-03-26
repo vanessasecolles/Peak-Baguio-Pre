@@ -29,7 +29,6 @@ const SpotDetails = () => {
       setLoading(true);
       try {
         const originalSpotId = title;
-
         const spotDocRef = doc(db, "spots", originalSpotId);
         const spotSnapshot = await getDoc(spotDocRef);
         if (spotSnapshot.exists()) {
@@ -117,14 +116,13 @@ const SpotDetails = () => {
             className="w-full rounded-lg shadow-md h-64 object-cover mb-4"
           />
         )}
-        <p className="text-md text-gray-600 font-semibold">
-  <span className="text-teal-800 block mb-2">Parking Area:</span>
-  <ul className="list-disc list-inside">
-    {parkingArea.split("\n").map((line, idx) => (
-      <li key={idx}>{line}</li>
-    ))}
-  </ul>
-</p>
+        {/* Render description as HTML */}
+        <div className="text-lg text-gray-700 mb-2" dangerouslySetInnerHTML={{ __html: description }} />
+        {/* Render parking area as HTML */}
+        <div className="text-md text-gray-600 font-semibold">
+          <span className="text-teal-800 block mb-2">Parking Area:</span>
+          <div dangerouslySetInnerHTML={{ __html: parkingArea }} />
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto mb-8 px-6">
@@ -179,7 +177,8 @@ const SpotDetails = () => {
               )}
               <div className="p-6">
                 <h4 className="text-xl font-semibold mb-2 text-teal-800">{activity.name}</h4>
-                <p className="text-gray-700 mb-4">{activity.description}</p>
+                {/* Render activity description as HTML */}
+                <div className="text-gray-700 mb-4" dangerouslySetInnerHTML={{ __html: activity.description }} />
                 <p className="text-gray-700 font-semibold">Starts at: {activity.price}</p>
               </div>
             </div>
@@ -203,8 +202,9 @@ const SpotDetails = () => {
               )}
               <div className="p-6">
                 <h4 className="text-xl font-semibold mb-2 text-teal-800">{option.name}</h4>
-                <p className="text-gray-700 mb-4">{option.description}</p>
-                <p className="text-gray-700 font-semibold">Starts at: {option.price}</p>
+                {/* Render dining option description as HTML */}
+                <div className="text-gray-700 mb-4" dangerouslySetInnerHTML={{ __html: option.description }} />
+                <p className="text-gray-700 font-semibold">{option.price}</p>
               </div>
             </div>
           ))
