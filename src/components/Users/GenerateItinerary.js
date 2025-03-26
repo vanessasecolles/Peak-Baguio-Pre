@@ -134,27 +134,45 @@ const GenerateItinerary = () => {
         .flatMap((group) => group.diningOptions);
       const selectedDining = filteredDining.sort(() => Math.random() - 0.5).slice(0, 3);
 
-      // Format dining for the prompt (without bold)
+      // ONLY for dining: remove "Price:" and the "₱" symbol => just show (xxx)
       const formattedDining = selectedDining
         .map(
           (option) =>
-            `- ${option.name}: ${option.description} (Price: ₱${option.price})`
+            `- ${option.name}: ${option.description} (${option.price})`
         )
         .join("\n");
+
+      // Create a slug for the chosen spot (e.g., "burnham-park")
+      const spotSlug = formData.spot.toLowerCase().replace(/\s+/g, "-");
 
       let prompt = "";
 
       // ---------------------------------------
-      // IF WHOLE DAY: Separate into Morning/Afternoon/Evening
+      // IF WHOLE DAY
       // ---------------------------------------
       if (formData.explorePeriod.toLowerCase() === "whole day") {
-        const morningGroup = activities.find((group) => group.timeOfDay === "morning") || { activities: [] };
-        const afternoonGroup = activities.find((group) => group.timeOfDay === "afternoon") || { activities: [] };
-        const eveningGroup = activities.find((group) => group.timeOfDay === "evening") || { activities: [] };
+        const morningGroup =
+          activities.find((group) => group.timeOfDay === "morning") || {
+            activities: [],
+          };
+        const afternoonGroup =
+          activities.find((group) => group.timeOfDay === "afternoon") || {
+            activities: [],
+          };
+        const eveningGroup =
+          activities.find((group) => group.timeOfDay === "evening") || {
+            activities: [],
+          };
 
-        const morningActivities = morningGroup.activities.sort(() => Math.random() - 0.5).slice(0, 5);
-        const afternoonActivities = afternoonGroup.activities.sort(() => Math.random() - 0.5).slice(0, 5);
-        const eveningActivities = eveningGroup.activities.sort(() => Math.random() - 0.5).slice(0, 5);
+        const morningActivities = morningGroup.activities
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 5);
+        const afternoonActivities = afternoonGroup.activities
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 5);
+        const eveningActivities = eveningGroup.activities
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 5);
 
         const formattedMorningActivities = morningActivities
           .map(
@@ -177,7 +195,7 @@ const GenerateItinerary = () => {
           )
           .join("\n");
 
-        // Prompt using Markdown headings; note that only Title, Overview and Explore Periods are expected to be bolded.
+        // Prompt
         prompt = `
 You are a travel planner specializing in Baguio City.
 
@@ -202,9 +220,10 @@ A short summary of the activity areas and dining options.
 2. Activity 2 (Price: ₱xxx)
 
 ## **Dining Options**
-1. Dining Option 1 (Price: ₱xxx)
-2. Dining Option 2 (Price: ₱xxx)
+1. Dining Option 1 (xxx)
+2. Dining Option 2 (xxx)
 
+[read more about ${formData.spot} by clicking here](http://localhost:3000/spots/${spotSlug})
 END
 -----------------------------------------------------------------------
 
@@ -228,15 +247,16 @@ ${formattedDining || "No dining options available."}
 `;
       } 
       // ---------------------------------------
-      // IF SINGLE PERIOD (Morning, Afternoon, Evening)
+      // IF SINGLE PERIOD
       // ---------------------------------------
       else {
         const filteredActivities = activities
           .filter((activityGroup) => activityGroup.timeOfDay === timeOfDay)
           .flatMap((group) => group.activities);
-        const selectedActivities = filteredActivities.sort(() => Math.random() - 0.5).slice(0, 5);
+        const selectedActivities = filteredActivities
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 5);
 
-        // Format activities for the prompt (without bold)
         const formattedActivities = selectedActivities
           .map(
             (activity) =>
@@ -244,6 +264,7 @@ ${formattedDining || "No dining options available."}
           )
           .join("\n");
 
+        // Prompt
         prompt = `
 You are a travel planner specializing in Baguio City.
 
@@ -260,9 +281,10 @@ A short summary of the activity areas and dining options.
 2. Activity 2 (Price: ₱xxx)
 
 ## **Dining Options**
-1. Dining Option 1 (Price: ₱xxx)
-2. Dining Option 2 (Price: ₱xxx)
+1. Dining Option 1 (xxx)
+2. Dining Option 2 (xxx)
 
+[read more about ${formData.spot} by clicking here](http://localhost:3000/spots/${spotSlug})
 END
 -----------------------------------------------------------------------
 
