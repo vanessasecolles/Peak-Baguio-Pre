@@ -235,7 +235,6 @@ const DynamicSpotAdmin = () => {
           ))}
         </div>
       </div>
-
       {/* Button to Add Item */}
       <div className="flex justify-end mb-4">
         <button
@@ -265,7 +264,11 @@ const DynamicSpotAdmin = () => {
                 className="text-gray-700"
                 dangerouslySetInnerHTML={{ __html: item.description }}
               />
-              <p className="text-sm">Starts at: {item.price}</p>
+              {currentType === "dining" ? (
+                <p className="text-sm">{item.price}</p>
+              ) : (
+                <p className="text-sm">Starts at: {item.price}</p>
+              )}
               <button
                 className="bg-yellow-500 text-white px-3 py-1 rounded mr-2"
                 onClick={() => openModal(item)}
