@@ -1,7 +1,9 @@
+// SpotDetails.js
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../../firebaseConfig";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import TruncatedText from "./TruncatedText"; // Import the reusable component
 
 const budgetMap = {
   "Low Budget": "lowBudget",
@@ -22,7 +24,10 @@ const SpotDetails = () => {
   const [parkingArea, setParkingArea] = useState("");
   const [spotImage, setSpotImage] = useState("");
 
-  const title = spotId.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  // Convert the spotId into a nicer title
+  const title = spotId
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
   useEffect(() => {
     const fetchSpotDetails = async () => {
@@ -38,6 +43,7 @@ const SpotDetails = () => {
           setSpotImage(spotData.image || "");
         }
 
+        // Fetch activities by time of day
         const activitiesPromises = timeOfDayOptions.map(async (time) => {
           const activitiesListRef = collection(
             db,
@@ -57,6 +63,7 @@ const SpotDetails = () => {
         const activitiesData = await Promise.all(activitiesPromises);
         setActivities(activitiesData);
 
+        // Fetch dining by budget
         const diningPromises = Object.values(budgetMap).map(async (firestoreKey) => {
           const diningListRef = collection(
             db,
@@ -85,12 +92,14 @@ const SpotDetails = () => {
     fetchSpotDetails();
   }, [spotId, timeOfDayOptions, title]);
 
+  // Filter activities based on selectedTimeOfDay
   const filteredActivities = selectedTimeOfDay
     ? activities
         .filter((activity) => activity.timeOfDay === selectedTimeOfDay.toLowerCase())
         .flatMap((activity) => activity.activities || [])
     : activities.flatMap((activity) => activity.activities || []);
 
+  // Filter dining based on selectedBudget
   const filteredDining = selectedBudget
     ? dining
         .filter((option) => option.budget === budgetMap[selectedBudget])
@@ -107,6 +116,7 @@ const SpotDetails = () => {
 
   return (
     <section className="py-16 bg-gradient-to-r from-blue-100 via-teal-100 to-green-100">
+      {/* Spot Title and Image */}
       <div className="max-w-4xl mx-auto px-6 mb-12 text-center">
         <h2 className="text-4xl font-bold text-teal-800 mb-4">{title}</h2>
         {spotImage && (
@@ -116,15 +126,18 @@ const SpotDetails = () => {
             className="w-full rounded-lg shadow-md h-64 object-cover mb-4"
           />
         )}
-        {/* Render description as HTML */}
-        <div className="text-lg text-gray-700 mb-2" dangerouslySetInnerHTML={{ __html: description }} />
-        {/* Render parking area as HTML */}
-        <div className="text-md text-gray-600 font-semibold">
+        {/* Main spot description (truncated) */}
+        <div className="text-lg text-gray-700 mb-2">
+          <TruncatedText htmlContent={description} />
+        </div>
+        {/* Parking area (rendered as HTML without read more) */}
+        <div className="text-md text-gray-600 font-semibold mt-4">
           <span className="text-teal-800 block mb-2">Parking Area:</span>
           <div dangerouslySetInnerHTML={{ __html: parkingArea }} />
         </div>
       </div>
 
+      {/* Filters */}
       <div className="max-w-4xl mx-auto mb-8 px-6">
         <div className="mb-4">
           <label className="block font-semibold text-teal-800 mb-2">
@@ -163,6 +176,7 @@ const SpotDetails = () => {
         </div>
       </div>
 
+      {/* Activities */}
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <h3 className="col-span-full text-2xl font-bold text-teal-800 mb-4">Activities</h3>
         {filteredActivities.length > 0 ? (
@@ -177,9 +191,11 @@ const SpotDetails = () => {
               )}
               <div className="p-6">
                 <h4 className="text-xl font-semibold mb-2 text-teal-800">{activity.name}</h4>
-                {/* Render activity description as HTML */}
-                <div className="text-gray-700 mb-4" dangerouslySetInnerHTML={{ __html: activity.description }} />
-                <p className="text-gray-700 font-semibold">Starts at: {activity.price}</p>
+                {/* Each activity's description truncated */}
+                <TruncatedText htmlContent={activity.description} />
+                <p className="text-gray-700 font-semibold mt-4">
+                  Starts at: {activity.price}
+                </p>
               </div>
             </div>
           ))
@@ -188,6 +204,7 @@ const SpotDetails = () => {
         )}
       </div>
 
+      {/* Dining Options */}
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
         <h3 className="col-span-full text-2xl font-bold text-teal-800 mb-4">Dining Options</h3>
         {filteredDining.length > 0 ? (
@@ -202,9 +219,9 @@ const SpotDetails = () => {
               )}
               <div className="p-6">
                 <h4 className="text-xl font-semibold mb-2 text-teal-800">{option.name}</h4>
-                {/* Render dining option description as HTML */}
-                <div className="text-gray-700 mb-4" dangerouslySetInnerHTML={{ __html: option.description }} />
-                <p className="text-gray-700 font-semibold">{option.price}</p>
+                {/* Each dining option's description truncated */}
+                <TruncatedText htmlContent={option.description} />
+                <p className="text-gray-700 font-semibold mt-4">{option.price}</p>
               </div>
             </div>
           ))
