@@ -130,10 +130,13 @@ const SpotDetails = () => {
         <div className="text-lg text-gray-700 mb-2">
           <TruncatedText htmlContent={description} />
         </div>
-        {/* Parking area (rendered as HTML without read more) */}
-        <div className="text-md text-gray-600 font-semibold mt-4">
+        {/* Parking area styled as a blue underlined link */}
+        <div className="text-md font-semibold mt-4">
           <span className="text-teal-800 block mb-2">Parking Area:</span>
-          <div dangerouslySetInnerHTML={{ __html: parkingArea }} />
+          <div
+            className="text-blue-600 underline cursor-pointer"
+            dangerouslySetInnerHTML={{ __html: parkingArea }}
+          />
         </div>
       </div>
 
@@ -191,7 +194,6 @@ const SpotDetails = () => {
               )}
               <div className="p-6">
                 <h4 className="text-xl font-semibold mb-2 text-teal-800">{activity.name}</h4>
-                {/* Each activity's description truncated */}
                 <TruncatedText htmlContent={activity.description} />
                 <p className="text-gray-700 font-semibold mt-4">
                   Starts at: {activity.price}
@@ -219,7 +221,6 @@ const SpotDetails = () => {
               )}
               <div className="p-6">
                 <h4 className="text-xl font-semibold mb-2 text-teal-800">{option.name}</h4>
-                {/* Each dining option's description truncated */}
                 <TruncatedText htmlContent={option.description} />
                 <p className="text-gray-700 font-semibold mt-4">{option.price}</p>
               </div>

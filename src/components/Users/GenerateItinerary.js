@@ -55,8 +55,6 @@ const GenerateItinerary = () => {
       let timeOfDayOptions = ["morning", "afternoon", "evening"];
       const budgetOptions = ["lowBudget", "midRange", "luxury"];
 
-      // If "Whole Day" is selected, include all time segments;
-      // otherwise, limit to the selected period.
       if (explorePeriod.toLowerCase() !== "whole day") {
         timeOfDayOptions = [explorePeriod.toLowerCase()];
       }
@@ -436,13 +434,13 @@ ${formattedDining || "No dining options available."}
             name="explorePeriod"
             value={formData.explorePeriod}
             onChange={handleChange}
-            className="w-full p-4 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500"
+            className="w-full p-4	border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500"
             required
           >
             <option value="">Choose Explore Period</option>
-            {explorePeriods.map((explorePeriod) => (
-              <option key={explorePeriod} value={explorePeriod}>
-                {explorePeriod}
+            {explorePeriods.map((period) => (
+              <option key={period} value={period}>
+                {period}
               </option>
             ))}
           </select>
@@ -472,7 +470,20 @@ ${formattedDining || "No dining options available."}
             Your AI-Generated Itinerary
           </h3>
           <div className="p-4 border border-teal-300 rounded-lg whitespace-pre-line bg-gray-50 text-gray-800 overflow-y-auto max-h-[60vh]">
-            <ReactMarkdown>{itinerary}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                a: ({ node, ...props }) => (
+                  <a
+                    {...props}
+                    className="text-blue-600 underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                ),
+              }}
+            >
+              {itinerary}
+            </ReactMarkdown>
           </div>
           <div className="flex justify-end space-x-4 mt-6">
             <button
