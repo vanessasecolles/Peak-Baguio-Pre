@@ -1,249 +1,133 @@
-import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { db } from "../../firebaseConfig";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
-import TruncatedText from "./TruncatedText"; // Import the reusable component
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { db } from '../../firebaseConfig';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import TruncatedText from './TruncatedText';
 
-const budgetMap = {
-  "Low Budget": "lowBudget",
-  "Mid Range": "midRange",
-  "Luxury": "luxury",
-};
+const timeOfDayOptions = ['Morning', 'Afternoon', 'Evening'];
+const budgetOptions = ['Low Budget', 'Mid Range', 'Luxury'];
 
 const SpotDetails = () => {
   const { spotId } = useParams();
   const [activities, setActivities] = useState([]);
   const [dining, setDining] = useState([]);
-  const [selectedSection, setSelectedSection] = useState("");
-  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState("");
-  const [selectedBudget, setSelectedBudget] = useState("");
-  const [budgets] = useState(Object.keys(budgetMap));
-  const [timeOfDayOptions] = useState(["Morning", "Afternoon", "Evening"]);
+  const [selectedSection, setSelectedSection] = useState('All');
+  const [subTab, setSubTab] = useState('All');
   const [loading, setLoading] = useState(true);
-  const [description, setDescription] = useState("");
-  const [parkingArea, setParkingArea] = useState("");
-  const [spotImage, setSpotImage] = useState("");
+  const [description, setDescription] = useState('');
+  const [parkingArea, setParkingArea] = useState('');
+  const [spotImage, setSpotImage] = useState('');
 
-  // Convert the spotId into a nicer title
-  const title = spotId
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const title = spotId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   useEffect(() => {
-    const fetchSpotDetails = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      try {
-        const originalSpotId = title;
-        const spotDocRef = doc(db, "spots", originalSpotId);
-        const spotSnapshot = await getDoc(spotDocRef);
-        if (spotSnapshot.exists()) {
-          const spotData = spotSnapshot.data();
-          setDescription(spotData.description || "");
-          setParkingArea(spotData.parkingArea || "No information available.");
-          setSpotImage(spotData.image || "");
-        }
-
-        // Fetch activities by time of day
-        const activitiesPromises = timeOfDayOptions.map(async (time) => {
-          const activitiesListRef = collection(
-            db,
-            "spots",
-            originalSpotId,
-            "activities",
-            time.toLowerCase(),
-            "list"
-          );
-          const activitiesSnapshot = await getDocs(activitiesListRef);
-          return {
-            timeOfDay: time.toLowerCase(),
-            activities: activitiesSnapshot.docs.map((doc) => doc.data()),
-          };
-        });
-
-        const activitiesData = await Promise.all(activitiesPromises);
-        setActivities(activitiesData);
-
-        // Fetch dining by budget
-        const diningPromises = Object.values(budgetMap).map(async (firestoreKey) => {
-          const diningListRef = collection(
-            db,
-            "spots",
-            originalSpotId,
-            "dining",
-            firestoreKey,
-            "list"
-          );
-          const diningSnapshot = await getDocs(diningListRef);
-          return {
-            budget: firestoreKey,
-            diningOptions: diningSnapshot.docs.map((doc) => doc.data()),
-          };
-        });
-
-        const diningData = await Promise.all(diningPromises);
-        setDining(diningData);
-      } catch (error) {
-        console.error("Error fetching spot details: ", error);
-      } finally {
-        setLoading(false);
+      // Spot details
+      const spotRef = doc(db, 'spots', title);
+      const spotSnap = await getDoc(spotRef);
+      if (spotSnap.exists()) {
+        const data = spotSnap.data();
+        setDescription(data.description || '');
+        setParkingArea(data.parkingArea || 'No information available.');
+        setSpotImage(data.image || '');
       }
+      // Activities
+      const actPromises = timeOfDayOptions.map(async t => {
+        const ref = collection(db, 'spots', title, 'activities', t.toLowerCase(), 'list');
+        const snap = await getDocs(ref);
+        return { time: t, items: snap.docs.map(d => d.data()) };
+      });
+      // Dining
+      const dinPromises = budgetOptions.map(async b => {
+        const key = b.replace(/ /g, '');
+        const ref = collection(db, 'spots', title, 'dining', key.charAt(0).toLowerCase() + key.slice(1), 'list');
+        const snap = await getDocs(ref);
+        return { budget: b, items: snap.docs.map(d => d.data()) };
+      });
+      const [actData, dinData] = await Promise.all([Promise.all(actPromises), Promise.all(dinPromises)]);
+      setActivities(actData);
+      setDining(dinData);
+      setLoading(false);
     };
+    fetchData();
+  }, [spotId, title]);
 
-    fetchSpotDetails();
-  }, [spotId, timeOfDayOptions, title]);
+  const getFilteredActivities = () => {
+    if (subTab === 'All') return activities.flatMap(a => a.items);
+    const found = activities.find(a => a.time === subTab);
+    return found ? found.items : [];
+  };
+  const getFilteredDining = () => {
+    if (subTab === 'All') return dining.flatMap(d => d.items);
+    const found = dining.find(d => d.budget === subTab);
+    return found ? found.items : [];
+  };
 
-  // Filter activities based on selectedTimeOfDay
-  const filteredActivities = selectedTimeOfDay
-    ? activities
-        .filter((activity) => activity.timeOfDay === selectedTimeOfDay.toLowerCase())
-        .flatMap((activity) => activity.activities || [])
-    : activities.flatMap((activity) => activity.activities || []);
-
-  // Filter dining based on selectedBudget
-  const filteredDining = selectedBudget
-    ? dining
-        .filter((option) => option.budget === budgetMap[selectedBudget])
-        .flatMap((option) => option.diningOptions || [])
-    : dining.flatMap((option) => option.diningOptions || []);
-
-  if (loading) {
-    return (
-      <section className="flex justify-center items-center h-screen">
-        <p>Loading...</p>
-      </section>
-    );
-  }
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
 
   return (
     <section className="py-16 bg-gradient-to-r from-blue-100 via-teal-100 to-green-100">
-      {/* Spot Title and Image */}
-      <div className="max-w-4xl mx-auto px-6 mb-12 text-center">
+      <div className="max-w-4xl mx-auto text-center px-6 mb-12">
         <h2 className="text-4xl font-bold text-teal-800 mb-4">{title}</h2>
-        {spotImage && (
-          <img
-            src={spotImage}
-            alt={title}
-            className="w-full rounded-lg shadow-md h-64 object-cover mb-4"
-          />
-        )}
-        <div className="text-lg text-gray-700 mb-2">
-          <TruncatedText htmlContent={description} />
-        </div>
-        <div className="text-md font-semibold mt-4">
-          <span className="text-teal-800 block mb-2">Parking Area:</span>
-          <div
-            className="text-blue-600 underline cursor-pointer"
-            dangerouslySetInnerHTML={{ __html: parkingArea }}
-          />
-        </div>
+        {spotImage && <img src={spotImage} alt={title} className="w-full h-64 object-cover rounded-lg shadow-md mb-4" />}
+        <div className="text-lg text-gray-700 mb-2"><TruncatedText htmlContent={description} /></div>
+        <div className="mt-4"><span className="font-semibold text-teal-800">Parking Area:</span> <span className="text-blue-600 underline" dangerouslySetInnerHTML={{ __html: parkingArea }} /></div>
       </div>
 
-      {/* Primary Filter: Section */}
-      <div className="max-w-4xl mx-auto mb-8 px-6">
-        <label className="block font-semibold text-teal-800 mb-2">
-          Choose Section
-        </label>
-        <select
-          className="w-full p-4 border border-teal-300 rounded-lg"
-          value={selectedSection}
-          onChange={(e) => {
-            setSelectedSection(e.target.value);
-            // reset secondary filters
-            setSelectedTimeOfDay("");
-            setSelectedBudget("");
-          }}
-        >
-          <option value="">All Sections</option>
-          <option value="Activities">Activities</option>
-          <option value="Dining Options">Dining Options</option>
-        </select>
-
-        {/* Secondary Filters */}
-        {selectedSection === "Activities" && (
-          <div className="mt-6">
-            <label className="block font-semibold text-teal-800 mb-2">
-              Filter by Time of Day
-            </label>
-            <select
-              className="w-full p-4 border border-teal-300 rounded-lg"
-              value={selectedTimeOfDay}
-              onChange={(e) => setSelectedTimeOfDay(e.target.value)}
-            >
-              <option value="">All Times</option>
-              {timeOfDayOptions.map((time) => (
-                <option key={time} value={time}>
-                  {time}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {selectedSection === "Dining Options" && (
-          <div className="mt-6">
-            <label className="block font-semibold text-teal-800 mb-2">
-              Filter by Budget
-            </label>
-            <select
-              className="w-full p-4 border border-teal-300 rounded-lg"
-              value={selectedBudget}
-              onChange={(e) => setSelectedBudget(e.target.value)}
-            >
-              <option value="">All Budgets</option>
-              {budgets.map((budget) => (
-                <option key={budget} value={budget}>
-                  {budget}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+      {/* Main Tabs */}
+      <div className="max-w-4xl mx-auto px-6 mb-6">
+        <nav className="flex justify-center space-x-4">
+          {['All', 'Activities', 'Dining'].map(sec => (
+            <button
+              key={sec}
+              onClick={() => { setSelectedSection(sec); setSubTab('All'); }}
+              className={`px-4 py-2 rounded-full font-medium ${selectedSection === sec ? 'bg-teal-600 text-white' : 'bg-white text-teal-800 shadow-sm'}`}
+            >{sec}</button>
+          ))}
+        </nav>
       </div>
 
-      {/* Render Lists Based on Section */}
-      {/* Activities Section */}
-      {(selectedSection === "" || selectedSection === "Activities") && (
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <h3 className="col-span-full text-2xl font-bold text-teal-800 mb-4">Activities</h3>
-          {filteredActivities.length > 0 ? (
-            filteredActivities.map((activity, idx) => (
-              <div key={idx} className="rounded-lg shadow-xl bg-white overflow-hidden">
-                {activity.image && (
-                  <img src={activity.image} alt={activity.name} className="w-full h-48 object-cover" />
-                )}
-                <div className="p-6">
-                  <h4 className="text-xl font-semibold mb-2 text-teal-800">{activity.name}</h4>
-                  <TruncatedText htmlContent={activity.description} />
-               
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-lg col-span-full">No activities available.</p>
-          )}
+      {/* Sub Tabs */}
+      {selectedSection !== 'All' && (
+        <div className="max-w-4xl mx-auto px-6 mb-8">
+          <nav className="flex justify-center space-x-3">
+            {(selectedSection === 'Activities' ? ['All', ...timeOfDayOptions] : ['All', ...budgetOptions]).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setSubTab(tab)}
+                className={`px-3 py-1 rounded ${subTab === tab ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+              >{tab}</button>
+            ))}
+          </nav>
         </div>
       )}
 
-      {/* Dining Section */}
-      {(selectedSection === "" || selectedSection === "Dining Options") && (
+      {/* Content Cards */}
+      {['All', 'Activities'].includes(selectedSection) && (
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <h3 className="col-span-full text-2xl font-bold text-teal-800 mb-4">Activities</h3>
+          {getFilteredActivities().length > 0 ? getFilteredActivities().map((a,i) => (
+            <div key={i} className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6 spot-card">
+              {a.image && <img src={a.image} alt={a.name} className="w-full h-48 object-cover mb-4 rounded" />}
+              <h4 className="text-xl font-semibold text-teal-800 mb-2">{a.name}</h4>
+              <TruncatedText htmlContent={a.description} />
+            </div>
+          )) : <p className="col-span-full text-center text-lg">No activities available.</p>}
+        </div>
+      )}
+
+      {['All', 'Dining'].includes(selectedSection) && (
         <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
           <h3 className="col-span-full text-2xl font-bold text-teal-800 mb-4">Dining Options</h3>
-          {filteredDining.length > 0 ? (
-            filteredDining.map((opt, idx) => (
-              <div key={idx} className="rounded-lg shadow-xl bg-white overflow-hidden">
-                {opt.image && (
-                  <img src={opt.image} alt={opt.name} className="w-full h-48 object-cover" />
-                )}
-                <div className="p-6">
-                  <h4 className="text-xl font-semibold mb-2 text-teal-800">{opt.name}</h4>
-                  <TruncatedText htmlContent={opt.description} />
-                  <p className="text-gray-700 font-semibold mt-4">{opt.price}</p>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-lg col-span-full">No dining options available.</p>
-          )}
+          {getFilteredDining().length > 0 ? getFilteredDining().map((d,i) => (
+            <div key={i} className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6 spot-card">
+              {d.image && <img src={d.image} alt={d.name} className="w-full h-48 object-cover mb-4 rounded" />}
+              <h4 className="text-xl font-semibold text-teal-800 mb-2">{d.name}</h4>
+              <TruncatedText htmlContent={d.description} />
+              <p className="text-gray-700 font-semibold mt-4">{d.price}</p>
+            </div>
+          )) : <p className="col-span-full text-center text-lg">No dining options available.</p>}
         </div>
       )}
     </section>

@@ -29,288 +29,161 @@ Modal.setAppElement('#root');
 
 const UserItineraries = () => {
   const [itineraries, setItineraries] = useState([]);
-  const [expandedItineraries, setExpandedItineraries] = useState({});
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [itineraryToDelete, setItineraryToDelete] = useState(null);
-  const [isFeedbackConfirmOpen, setIsFeedbackConfirmOpen] = useState(false);
-  const [feedbackAction, setFeedbackAction] = useState({ id: null, type: null });
+  const [filtered, setFiltered] = useState([]);
+  const [feedbackFilter, setFeedbackFilter] = useState('All');
+  const [sortOrder, setSortOrder] = useState('Newest');
+  const [detailItin, setDetailItin] = useState(null);
+  const [delModal, setDelModal] = useState(false);
+  const [delItin, setDelItin] = useState(null);
+  const [fbModal, setFbModal] = useState(false);
+  const [fbAction, setFbAction] = useState({ id: null, type: null });
   const [loading, setLoading] = useState(true);
 
   const auth = getAuth();
   const user = auth.currentUser;
 
+  // Real-time fetch
   useEffect(() => {
     if (!user) return setLoading(false);
-    const itinerariesQuery = query(
+    const q = query(
       collection(db, 'itineraries'),
-      where('userId', '==', user.uid),
-      orderBy('timestamp', 'desc')
+      where('userId', '==', user.uid)
     );
-    const unsubscribe = onSnapshot(itinerariesQuery, (snapshot) => {
-      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setItineraries(fetched);
+    return onSnapshot(q, snap => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setItineraries(data);
       setLoading(false);
     });
-    return () => unsubscribe();
   }, [user]);
+
+  // Apply filter & sort
+  useEffect(() => {
+    let arr = [...itineraries];
+    if (feedbackFilter !== 'All') {
+      arr = arr.filter(i => i.feedback === feedbackFilter.toLowerCase());
+    }
+    arr.sort((a, b) => {
+      const ta = a.timestamp.seconds;
+      const tb = b.timestamp.seconds;
+      return sortOrder === 'Newest' ? tb - ta : ta - tb;
+    });
+    setFiltered(arr);
+  }, [itineraries, feedbackFilter, sortOrder]);
 
   const handleDelete = async id => {
     try {
       await deleteDoc(doc(db, 'itineraries', id));
-      toast.success('Itinerary deleted successfully.');
+      toast.success('Deleted');
     } catch {
-      toast.error('Failed to delete the itinerary. Please try again.');
+      toast.error('Delete failed');
     } finally {
-      setIsDeleteModalOpen(false);
+      setDelModal(false);
     }
   };
 
-  const handlePrint = itineraryMd => {
-    const cleanMd = itineraryMd
+  const handlePrint = md => {
+    const clean = md
       .split('\n')
-      .filter(
-        line =>
-          !line.trim().toLowerCase().startsWith('[read more') &&
-          line.trim().toUpperCase() !== 'END'
-      )
+      .filter(l => !l.toLowerCase().startsWith('[read more') && l.trim().toUpperCase() !== 'END')
       .join('\n');
-
-    const htmlBody = marked(cleanMd);
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Your Baguio City Itinerary</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; color: #333; }
-            h1 { color: #0d9488; margin-bottom: 0.5em; }
-            h2,h3,h4 { color: #115e59; margin-top: 1em; margin-bottom: 0.5em; }
-            ul,ol { margin-left: 1.5em; margin-bottom: 1em; }
-            a { color: #2563eb; text-decoration: underline; }
-            .footer { margin-top: 2em; font-size: 0.9em; text-align: center; color: #555; }
-          </style>
-        </head>
-        <body>
-          <h1>Your Baguio City Itinerary</h1>
-          ${htmlBody}
-          <div class="footer">Generated on ${new Date().toLocaleDateString()}</div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-    toast.info('Opened print preview!');
+    const html = marked(clean);
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <html><head><title>Itinerary</title>
+        <style>body{font-family:sans-serif;padding:20px} a{text-decoration:underline;color:#2563eb;}</style>
+      </head><body>${html}</body></html>`);
+    win.document.close(); win.print(); win.close();
+    toast.info('Print opened');
   };
 
-  const openFeedbackConfirm = (itinerary, type) => {
-    setFeedbackAction({ id: itinerary.id, type });
-    setIsFeedbackConfirmOpen(true);
+  const openFeedback = (id, type) => {
+    setFbAction({ id, type }); setFbModal(true);
+  };
+  const confirmFb = async () => {
+    await updateDoc(doc(db, 'itineraries', fbAction.id), { feedback: fbAction.type });
+    toast.success(fbAction.type === 'liked' ? 'Liked' : 'Disliked');
+    setFbModal(false);
   };
 
-  const closeFeedbackConfirm = () => {
-    setIsFeedbackConfirmOpen(false);
-    setFeedbackAction({ id: null, type: null });
-  };
-
-  const confirmFeedback = async () => {
-    const { id, type } = feedbackAction;
-    if (!id || !type) return;
-    try {
-      await updateDoc(doc(db, 'itineraries', id), { feedback: type });
-      toast.success(
-        `Itinerary ${type === 'liked' ? 'liked' : 'disliked'} successfully!`
-      );
-    } catch {
-      toast.error('Failed to submit feedback. Please try again.');
-    } finally {
-      closeFeedbackConfirm();
-    }
-  };
-
-  const toggleExpanded = id => {
-    setExpandedItineraries(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const openDeleteModal = itinerary => {
-    setItineraryToDelete(itinerary);
-    setIsDeleteModalOpen(true);
-  };
-
-  const closeDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setItineraryToDelete(null);
-  };
-
-  if (loading) {
-    return (
-      <section className="flex justify-center items-center min-h-screen bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
-        <p className="text-2xl text-teal-700">Loading itineraries...</p>
-      </section>
-    );
-  }
+  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
 
   return (
-    <section className="flex flex-col items-center min-h-screen p-4 sm:p-8 bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
-      <div className="bg-white shadow-2xl rounded-lg p-6 w-full max-w-4xl">
-        <h2 className="text-3xl font-bold mb-6 text-center text-teal-700">
-          Your Itineraries
-        </h2>
-        {itineraries.length === 0 ? (
-          <p className="text-center text-lg text-gray-700">
-            No itineraries found. Generate your first itinerary to get started!
-          </p>
-        ) : (
-          <div className="space-y-6">
-            {itineraries.map(it => {
-              const isLiked = it.feedback === 'liked';
-              const isDisliked = it.feedback === 'disliked';
-              return (
-                <div
-                  key={it.id}
-                  className="p-4 border border-teal-300 rounded-lg bg-gray-50"
-                >
-                  <h3 className="text-2xl font-semibold mb-3 text-teal-800">
-                    Itinerary from {new Date(it.timestamp.seconds * 1000).toLocaleDateString()}
-                  </h3>
-                  <div className="text-gray-600 leading-relaxed whitespace-pre-line mb-3">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        a: ({ node, ...props }) => (
-                          <a
-                            {...props}
-                            className="text-blue-600 underline"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          />
-                        ),
-                      }}
-                    >
-                      {expandedItineraries[it.id] || it.itinerary.length <= 300
-                        ? it.itinerary
-                        : `${it.itinerary.substring(0, 300)}...`}
+    <section className="py-8 bg-gray-50">
+      <div className="px-4 max-w-7xl mx-auto">
+        <h2 className="text-3xl font-bold text-center text-teal-700 mb-6">Your Itineraries</h2>
+        {/* Filter Bar */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0">
+          <select
+            value={feedbackFilter}
+            onChange={e => setFeedbackFilter(e.target.value)}
+            className="p-2 border rounded"
+          >
+            {['All', 'Liked', 'Disliked'].map(opt => <option key={opt}>{opt}</option>)}
+          </select>
+          <select
+            value={sortOrder}
+            onChange={e => setSortOrder(e.target.value)}
+            className="p-2 border rounded"
+          >
+            {['Newest', 'Oldest'].map(opt => <option key={opt}>{opt}</option>)}
+          </select>
+        </div>
+        {/* Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map(it => {
+            const date = new Date(it.timestamp.seconds*1000).toLocaleDateString();
+            const isLiked = it.feedback === 'liked';
+            const isDisliked = it.feedback === 'disliked';
+            return (
+              <div key={it.id} className="relative bg-white rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition flex flex-col h-full">
+                {/* Feedback Badge */}
+                {isLiked && <span className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">✔️</span>}
+                {isDisliked && <span className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full">❌</span>}
+                <div className="p-4 flex-1">
+                  <span className="inline-block bg-teal-100 text-teal-800 text-sm px-2 py-1 rounded-full mb-2">{date}</span>
+                  <div className="prose prose-teal mb-4 max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{a: ({node,...props})=><a {...props} className="text-blue-600 underline"/>}}>
+                      {it.itinerary.length>300 ? it.itinerary.substring(0,300)+'...' : it.itinerary}
                     </ReactMarkdown>
                   </div>
-                  {it.itinerary.length > 300 && (
-                    <button
-                      onClick={() => toggleExpanded(it.id)}
-                      className="text-blue-600 underline mb-4"
-                    >
-                      {expandedItineraries[it.id] ? 'Read Less' : 'Read More'}
-                    </button>
-                  )}
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <button
-                      onClick={() => handlePrint(it.itinerary)}
-                      className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700 flex items-center space-x-2"
-                    >
-                      <FontAwesomeIcon icon={faPrint} />
-                      <span>Print</span>
-                    </button>
-                    <button
-                      onClick={() => openFeedbackConfirm(it, isLiked ? 'disliked' : 'liked')}
-                      disabled={isLiked}
-                      title={
-                        isLiked
-                          ? 'You already liked this itinerary'
-                          : 'Click to like'
-                      }
-                      className={
-                        `text-white py-2 px-4 rounded-lg flex items-center space-x-2 ${
-                          isLiked
-                            ? 'bg-green-800 opacity-50 cursor-not-allowed'
-                            : 'bg-green-600 hover:bg-green-700'
-                        }`
-                      }
-                    >
-                      <FontAwesomeIcon icon={faThumbsUp} />
-                      <span>{isLiked ? 'Liked' : 'Like'}</span>
-                    </button>
-                    <button
-                      onClick={() => openFeedbackConfirm(it, isDisliked ? 'liked' : 'disliked')}
-                      disabled={isDisliked}
-                      title={
-                        isDisliked
-                          ? 'You already disliked this itinerary'
-                          : 'Click to dislike'
-                      }
-                      className={
-                        `text-white py-2 px-4 rounded-lg flex items-center space-x-2 ${
-                          isDisliked
-                            ? 'bg-red-800 opacity-50 cursor-not-allowed'
-                            : 'bg-red-600 hover:bg-red-700'
-                        }`
-                      }
-                    >
-                      <FontAwesomeIcon icon={faThumbsDown} />
-                      <span>{isDisliked ? 'Disliked' : 'Dislike'}</span>
-                    </button>
-                    <button
-                      onClick={() => openDeleteModal(it)}
-                      className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 flex items-center space-x-2"
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                      <span>Delete</span>
-                    </button>
-                  </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+                {/* Sticky Footer */}
+                <div className="mt-auto p-4 border-t bg-gray-50 flex justify-end gap-2">
+                  <button onClick={()=>handlePrint(it.itinerary)} className="p-2 rounded bg-teal-600 text-white"><FontAwesomeIcon icon={faPrint}/></button>
+                  <button onClick={()=>openFeedback(it.id,'liked')} disabled={isLiked} className={`p-2 rounded ${isLiked?'bg-green-800 text-white opacity-50':'bg-green-600 text-white'}`}><FontAwesomeIcon icon={faThumbsUp}/></button>
+                  <button onClick={()=>openFeedback(it.id,'disliked')} disabled={isDisliked} className={`p-2 rounded ${isDisliked?'bg-red-800 text-white opacity-50':'bg-red-600 text-white'}`}><FontAwesomeIcon icon={faThumbsDown}/></button>
+                  <button onClick={()=>{setDelItin(it);setDelModal(true);}} className="p-2 rounded bg-gray-600 text-white"><FontAwesomeIcon icon={faTrash}/></button>
+                  <button onClick={()=>setDetailItin(it)} className="w-full text-sm text-blue-600 mt-2">Read More</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <Modal
-        isOpen={isFeedbackConfirmOpen}
-        onRequestClose={closeFeedbackConfirm}
-        className="modal-content bg-white p-6 rounded-lg shadow-2xl w-11/12 max-w-md mx-auto"
-        overlayClassName="modal-overlay fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-      >
-        <h3 className="text-2xl font-bold mb-4 text-center text-teal-700">
-          {feedbackAction.type === 'liked'
-            ? 'Are you sure you want to like this itinerary?'
-            : 'Are you sure you want to dislike this itinerary?'}
-        </h3>
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={confirmFeedback}
-            className="bg-teal-600 text-white py-3 px-6 rounded-lg hover:bg-teal-700"
-          >
-            Yes
-          </button>
-          <button
-            onClick={closeFeedbackConfirm}
-            className="bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700"
-          >
-            Cancel
-          </button>
+      {/* Detail Drawer */}
+      <Modal isOpen={!!detailItin} onRequestClose={()=>setDetailItin(null)} className="fixed right-0 top-0 h-full w-full md:w-1/2 bg-white shadow-xl p-6 overflow-auto" overlayClassName="fixed inset-0 bg-black bg-opacity-50">
+        <button onClick={()=>setDetailItin(null)} className="mb-4 text-gray-600">Close</button>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{a: ({node,...props})=><a {...props} className="text-blue-600 underline"/>}}>
+          {detailItin?.itinerary || ''}
+        </ReactMarkdown>
+      </Modal>
+
+      {/* Feedback Modal */}
+      <Modal isOpen={fbModal} onRequestClose={()=>setFbModal(false)} className="modal-content bg-white p-6 rounded-lg shadow-xl max-w-sm mx-auto" overlayClassName="modal-overlay bg-black bg-opacity-50 fixed inset-0 flex items-center justify-center">
+        <h3 className="text-xl font-bold mb-4 text-center">Confirm {fbAction.type==='liked'?'Like':'Dislike'}?</h3>
+        <div className="flex justify-around">
+          <button onClick={confirmFb} className="bg-teal-600 text-white px-4 py-2 rounded">Yes</button>
+          <button onClick={()=>setFbModal(false)} className="bg-gray-600 text-white px-4 py-2 rounded">Cancel</button>
         </div>
       </Modal>
 
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onRequestClose={closeDeleteModal}
-        className="modal-content bg-white p-6 rounded-lg shadow-2xl w-11/12 max-w-md mx-auto"
-        overlayClassName="modal-overlay fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-      >
-        <h3 className="text-2xl font-bold mb-4 text-center text-red-700">
-          Are you sure you want to delete this itinerary?
-        </h3>
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={() => handleDelete(itineraryToDelete.id)}
-            className="bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700"
-          >
-            Yes, Delete
-          </button>
-          <button
-            onClick={closeDeleteModal}
-            className="bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700"
-          >
-            Cancel
-          </button>
+      {/* Delete Modal */}
+      <Modal isOpen={delModal} onRequestClose={()=>setDelModal(false)} className="modal-content bg-white p-6 rounded-lg shadow-xl max-w-sm mx-auto" overlayClassName="modal-overlay bg-black bg-opacity-50 fixed inset-0 flex items-center justify-center">
+        <h3 className="text-xl font-bold mb-4 text-center text-red-700">Delete Itinerary?</h3>
+        <div className="flex justify-around">
+          <button onClick={()=>handleDelete(delItin.id)} className="bg-red-600 text-white px-4 py-2 rounded">Delete</button>
+          <button onClick={()=>setDelModal(false)} className="bg-gray-600 text-white px-4 py-2 rounded">Cancel</button>
         </div>
       </Modal>
 

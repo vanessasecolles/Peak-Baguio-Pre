@@ -3,130 +3,202 @@ import {
   getAuth,
   updatePassword,
   reauthenticateWithCredential,
-  EmailAuthProvider
+  EmailAuthProvider,
 } from "firebase/auth";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faEye,
+  faEyeSlash,
+  faLock,
+} from "@fortawesome/free-solid-svg-icons";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ChangePassword = () => {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [current, setCurrent] = useState("");
+  const [nw, setNew] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const auth = getAuth();
   const user = auth.currentUser;
 
+  // Password strength: very basic based on length & variety
+  const strength = () => {
+    let score = 0;
+    if (nw.length >= 6) score += 1;
+    if (/[A-Z]/.test(nw)) score += 1;
+    if (/[0-9]/.test(nw)) score += 1;
+    if (/[^A-Za-z0-9]/.test(nw)) score += 1;
+    return score; // 0–4
+  };
+
+  const strengthLabel = ["Too Short","Weak","Okay","Good","Strong"][strength()];
+
+  const isValid =
+    current &&
+    nw.length >= 6 &&
+    confirm === nw;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    // Check if new password and confirm password match
-    if (newPassword !== confirmPassword) {
-      setError("New password and confirm password do not match.");
-      return;
-    }
-
-    // Basic check for password length
-    if (newPassword.length < 6) {
-      setError("New password should be at least 6 characters long.");
-      return;
-    }
-
-    // Ensure user is logged in
     if (!user) {
-      setError("No user is logged in.");
-      return;
+      return toast.error("No user is logged in.");
     }
-
     setLoading(true);
-
     try {
-      // Reauthenticate user with current password
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await reauthenticateWithCredential(user, credential);
-
-      // Update the user's password
-      await updatePassword(user, newPassword);
-      setSuccess("Password updated successfully!");
-
-      // Reset form fields
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      // Re-auth
+      const cred = EmailAuthProvider.credential(user.email, current);
+      await reauthenticateWithCredential(user, cred);
+      // Update
+      await updatePassword(user, nw);
+      toast.success("Password updated successfully!");
+      setCurrent("");
+      setNew("");
+      setConfirm("");
     } catch (err) {
-      // Check Firebase error codes for more specific messages
-      if (
-        err.code === "auth/wrong-password" ||
-        err.code === "auth/invalid-credential"
-      ) {
-        setError("Your current password is incorrect. Please try again.");
+      if (err.code === "auth/wrong-password") {
+        toast.error("Current password is incorrect.");
       } else if (err.code === "auth/weak-password") {
-        setError("Your new password is too weak. Please choose a stronger one.");
+        toast.error("New password is too weak.");
       } else {
-        // Fallback error message
-        setError(err.message || "Failed to update password.");
+        toast.error(err.message);
       }
     }
-
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-[#D8ECFB] to-[#EFF8F9] flex items-center justify-center p-4">
-      <div className="bg-white shadow-md rounded p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-teal-700">Change Password</h2>
+      <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md relative">
+        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
+          <div className="bg-teal-500 text-white p-4 rounded-full shadow-xl">
+            <FontAwesomeIcon icon={faLock} size="2x" />
+          </div>
+        </div>
+        <h2 className="mt-8 text-2xl font-bold mb-6 text-center text-teal-700">
+          Change Password
+        </h2>
 
-        {error && <p className="text-red-500 mb-2">{error}</p>}
-        {success && <p className="text-green-600 mb-2">{success}</p>}
-
-        <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-          {/* Current Password */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Current */}
           <div>
-            <label className="block text-teal-700 font-semibold">Current Password</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none focus:border-teal-500"
-              required
-            />
+            <label className="block text-teal-800 font-semibold mb-1">
+              Current Password
+            </label>
+            <div className="relative">
+              <input
+                type={showCurrent ? "text" : "password"}
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+                className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-teal-300"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent((v) => !v)}
+                className="absolute inset-y-0 right-2 flex items-center text-gray-500"
+              >
+                <FontAwesomeIcon icon={showCurrent ? faEyeSlash : faEye} />
+              </button>
+            </div>
           </div>
 
-          {/* New Password */}
+          {/* New */}
           <div>
-            <label className="block text-teal-700 font-semibold">New Password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none focus:border-teal-500"
-              required
-            />
+            <label className="block text-teal-800 font-semibold mb-1">
+              New Password
+            </label>
+            <div className="relative">
+              <input
+                type={showNew ? "text" : "password"}
+                value={nw}
+                onChange={(e) => setNew(e.target.value)}
+                className={`w-full p-3 border rounded focus:outline-none ${
+                  nw.length > 0 && nw.length < 6
+                    ? "border-red-500"
+                    : "focus:ring-2 focus:ring-teal-300"
+                }`}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew((v) => !v)}
+                className="absolute inset-y-0 right-2 flex items-center text-gray-500"
+              >
+                <FontAwesomeIcon icon={showNew ? faEyeSlash : faEye} />
+              </button>
+            </div>
+            {nw && (
+              <div className="mt-2 flex items-center">
+                <div className="flex-1 h-2 bg-gray-200 rounded overflow-hidden mr-2">
+                  <div
+                    className={`h-full ${
+                      strength() < 2
+                        ? "bg-red-500"
+                        : strength() < 3
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                    style={{ width: `${(strength()/4)*100}%` }}
+                  />
+                </div>
+                <span className="text-sm text-gray-600">{strengthLabel}</span>
+              </div>
+            )}
           </div>
 
-          {/* Confirm New Password */}
+          {/* Confirm */}
           <div>
-            <label className="block text-teal-700 font-semibold">Confirm New Password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none focus:border-teal-500"
-              required
-            />
+            <label className="block text-teal-800 font-semibold mb-1">
+              Confirm New Password
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirm ? "text" : "password"}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                className={`w-full p-3 border rounded focus:outline-none ${
+                  confirm && confirm !== nw
+                    ? "border-red-500"
+                    : "focus:ring-2 focus:ring-teal-300"
+                }`}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                className="absolute inset-y-0 right-2 flex items-center text-gray-500"
+              >
+                <FontAwesomeIcon icon={showConfirm ? faEyeSlash : faEye} />
+              </button>
+            </div>
+            {confirm && confirm !== nw && (
+              <p className="mt-1 text-red-500 text-sm">
+                Passwords do not match.
+              </p>
+            )}
           </div>
 
+          {/* Submit */}
           <button
             type="submit"
-            disabled={loading}
-            className="bg-teal-700 text-white py-2 px-4 rounded hover:bg-teal-800 transition-colors duration-300"
+            disabled={!isValid || loading}
+            className={`w-full py-3 rounded text-white font-semibold transition ${
+              isValid
+                ? "bg-teal-700 hover:bg-teal-800"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
           >
             {loading ? "Updating..." : "Update Password"}
           </button>
         </form>
       </div>
+
+      <ToastContainer position="top-right" />
     </div>
   );
 };

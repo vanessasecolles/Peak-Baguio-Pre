@@ -11,7 +11,10 @@ import {
   faUserShield,
   faTimes,
   faBars,
-  faHome,
+  faTable,
+  faChartSimple,
+  faPlusSquare,
+  faCog
 } from "@fortawesome/free-solid-svg-icons";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -86,7 +89,7 @@ const AdminNav = () => {
             <NavLink to="/" onClick={closeMobileMenu} className={({ isActive }) =>
               `flex items-center p-2 rounded ${isActive ? 'bg-blue-700' : 'hover:bg-blue-600'} transition-colors`
             }>
-              <FontAwesomeIcon icon={faHome} className="mr-3" /> Home
+              <FontAwesomeIcon icon={faChartSimple} className="mr-3" /> Analytics Dashboard
             </NavLink>
           </li>
           {/* Itineraries Table */}
@@ -94,7 +97,7 @@ const AdminNav = () => {
             <NavLink to="/admin-dashboard/itin-table" onClick={closeMobileMenu} className={({ isActive }) =>
               `block p-2 rounded ${isActive ? 'bg-blue-700' : 'hover:bg-blue-600'} transition-colors`
             }>
-              Itineraries Table
+              <FontAwesomeIcon icon={faTable} className="mr-3" />  Itineraries Table
             </NavLink>
           </li>
           {/* Admin-only Links */}
@@ -118,7 +121,7 @@ const AdminNav = () => {
                 <NavLink to="/admin-dashboard/add-spots" onClick={closeMobileMenu} className={({ isActive }) =>
                   `block p-2 rounded ${isActive ? 'bg-blue-700' : 'hover:bg-blue-600'} transition-colors`
                 }>
-                  Add Spots
+                 <FontAwesomeIcon icon={faPlusSquare} className="mr-3" /> Add Spots
                 </NavLink>
               </li>
               {/* Manage Spots Submenu */}

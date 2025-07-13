@@ -1,84 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebaseConfig';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged, 
-  sendPasswordResetEmail 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import Modal from 'react-modal';
-import { useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-Modal.setAppElement('#root');
+import { useNavigate } from 'react-router-dom';
 
 const UserAuth = () => {
-  const [isRegister, setIsRegister] = useState(false);
+  const [mode, setMode] = useState('login'); // 'login' or 'register'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetMode, setResetMode] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
+  // Track auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
       setIsLoggedIn(!!user);
     });
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
-  const handleAuth = async (e) => {
+  // Validate inputs
+  const canLogin = email.trim() !== '' && password.length >= 6;
+  const canRegister = canLogin && password === confirmPassword;
+  const canReset = email.trim() !== '';
+
+  const handleSubmit = async e => {
     e.preventDefault();
     try {
-      if (isRegister) {
-        // Register User
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // Create a user profile in Firestore
-        await setDoc(doc(db, 'users', user.uid), {
-          email: user.email,
-          role: 'user',
-          itineraryAccessCount: 0,
-        });
-
-        // Show success modal
-        setIsModalOpen(true);
-      } else {
-        // Log In User
-        await signInWithEmailAndPassword(auth, email, password);
-        // Redirect after successful login
-        navigate('/');
-      }
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    if (!email) {
-      toast.error("Please enter your email address to reset your password.");
-      return;
-    }
-    try {
-      // Check if the email exists in the 'users' collection
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('email', '==', email)
-      );
-      const querySnapshot = await getDocs(usersQuery);
-      if (querySnapshot.empty) {
-        toast.error("No account found with this email address.");
+      if (resetMode) {
+        // Password reset flow
+        const usersQ = query(collection(db, 'users'), where('email', '==', email));
+        const snap = await getDocs(usersQ);
+        if (snap.empty) {
+          toast.error('No account with that email.');
+        } else {
+          await sendPasswordResetEmail(auth, email);
+          toast.success('Password reset email sent.');
+          setResetMode(false);
+        }
         return;
       }
 
-      // Email exists, proceed with sending the reset email
-      await sendPasswordResetEmail(auth, email);
-      toast.success("Password reset email sent. Please check your inbox.");
+      if (mode === 'register') {
+        const { user } = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, 'users', user.uid), { email: user.email, role: 'user' });
+        toast.success('Registered successfully! Please login.');
+        setMode('login');
+        setPassword('');
+        setConfirmPassword('');
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast.success('Logged in! Redirecting...');
+        setTimeout(() => navigate('/'), 1500);
+      }
     } catch (err) {
       toast.error(err.message);
     }
@@ -87,134 +73,128 @@ const UserAuth = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigate('/');
+      toast.info('Logged out');
+      setTimeout(() => navigate('/'), 1000);
     } catch (err) {
       toast.error(err.message);
     }
   };
 
-  const toggleAuthMode = () => {
-    setIsRegister((prev) => !prev);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    navigate('/');
-  };
-
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
-      <div className="bg-white shadow-md rounded-lg p-8 w-full max-w-md">
-        {isLoggedIn ? (
-          <div className="text-center">
-            <h2 className="text-3xl font-bold mb-6 text-teal-700">You are already logged in</h2>
-            <button
-              onClick={handleLogout}
-              className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-500"
-            >
-              Logout
-            </button>
-          </div>
-        ) : (
-          <>
-            <h2 className="text-3xl font-bold mb-6 text-center text-teal-700">
-              {isRegister ? 'Register' : 'Login'} to Peak Baguio
-            </h2>
-            <form onSubmit={handleAuth} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block font-semibold text-teal-800 mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full p-3 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block font-semibold text-teal-800 mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full p-3 border border-teal-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-500"
-                />
-              </div>
-
-              {/* Show Forgot Password option only in login mode */}
-              {!isRegister && (
-                <div className="text-right">
-                  <button
-                    type="button"
-                    onClick={handleResetPassword}
-                    className="text-teal-600 text-sm font-semibold hover:underline focus:outline-none"
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-500"
-              >
-                {isRegister ? 'Register' : 'Login'}
-              </button>
-            </form>
-
-            <p className="text-center mt-4">
-              {isRegister ? 'Already have an account?' : "Don't have an account yet?"}{' '}
-              <button
-                onClick={toggleAuthMode}
-                className="text-teal-600 font-semibold hover:underline focus:outline-none"
-              >
-                {isRegister ? 'Login here' : 'Register here'}
-              </button>
-            </p>
-          </>
-        )}
-      </div>
-
-      <Modal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        contentLabel="Registration Successful"
-        className="modal-content bg-white p-8 rounded-lg shadow-2xl max-w-md mx-auto mt-20 transform transition-transform duration-500 ease-in-out"
-        overlayClassName="modal-overlay fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-black bg-opacity-50"
-      >
-        <div className="p-6">
-          <h3 className="text-3xl font-bold mb-4 text-teal-700">Registration Successful!</h3>
-          <p className="text-gray-700 mb-6">
-            You have successfully registered. You can now log in and start planning your adventure in Baguio City!
-          </p>
+  if (isLoggedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center w-full max-w-sm">
+          <h2 className="text-2xl font-bold mb-6 text-teal-700">You are logged in</h2>
           <button
-            onClick={closeModal}
-            className="bg-teal-600 text-white py-3 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-500"
+            onClick={handleLogout}
+            className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition"
           >
-            Close
+            Logout
           </button>
         </div>
-      </Modal>
+        <ToastContainer position="top-center" />
+      </div>
+    );
+  }
 
-      <ToastContainer 
-        position="top-center"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50 p-4">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        {/* Tabs */}
+        <div className="flex mb-6">
+          <button
+            onClick={() => { setMode('login'); setResetMode(false); }}
+            className={`flex-1 py-2 ${mode === 'login' && !resetMode ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-600'}`}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => { setMode('register'); setResetMode(false); }}
+            className={`flex-1 py-2 ${mode === 'register' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-600'}`}
+          >
+            Register
+          </button>
+          <button
+            onClick={() => setResetMode(r => !r)}
+            className={`flex-1 py-2 ${resetMode ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-600'}`}
+          >
+            Reset
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative">
+            <FontAwesomeIcon icon={faEnvelope} className="absolute left-3 top-3 text-gray-400" />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-teal-300"
+              required
+            />
+          </div>
+
+          {!resetMode && (
+            <>
+              <div className="relative">
+                <FontAwesomeIcon icon={faLock} className="absolute left-3 top-3 text-gray-400" />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-teal-300"
+                  required
+                  minLength={6}
+                />
+              </div>
+              {mode === 'register' && (
+                <div className="relative">
+                  <FontAwesomeIcon icon={faLock} className="absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="password"
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-teal-300"
+                    required
+                    minLength={6}
+                  />
+                  {confirmPassword && confirmPassword !== password && (
+                    <p className="mt-1 text-red-500 text-sm">Passwords do not match.</p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          <button
+            type="submit"
+            disabled={resetMode ? !canReset : mode === 'login' ? !canLogin : !canRegister}
+            className={`w-full py-2 rounded text-white font-semibold transition ${
+              resetMode
+                ? canReset
+                  ? 'bg-yellow-600 hover:bg-yellow-700'
+                  : 'bg-gray-400 cursor-not-allowed'
+                : mode === 'login'
+                ? canLogin
+                  ? 'bg-teal-600 hover:bg-teal-700'
+                  : 'bg-gray-400 cursor-not-allowed'
+                : canRegister
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {resetMode
+              ? 'Send Reset Email'
+              : mode === 'login'
+              ? 'Login'
+              : 'Register'}
+          </button>
+        </form>
+      </div>
+      <ToastContainer position="top-center" />
     </div>
   );
 };
