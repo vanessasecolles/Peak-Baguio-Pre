@@ -109,7 +109,7 @@ const AdminAccounts = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 md:ml-64">
       <h2 className="text-3xl font-bold mb-6 text-center text-teal-700">Manage Admin Accounts</h2>
       <form onSubmit={handleAccountSubmit} className="bg-white shadow-md rounded-lg p-6 space-y-6">
         <div>

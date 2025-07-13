@@ -72,7 +72,7 @@ const AddSpot = () => {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gray-100 flex items-center justify-center">
+    <div className="min-h-screen p-8 bg-gray-100 flex items-center justify-center md:ml-64">
       <div className="w-full max-w-lg bg-white shadow-md rounded-lg p-6">
         <h2 className="text-2xl font-bold text-teal-700 mb-6">Add New Spot</h2>
 

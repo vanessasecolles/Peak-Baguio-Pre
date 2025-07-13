@@ -84,7 +84,7 @@ const UserAccounts = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 md:ml-64">
       <h2 className="text-3xl font-bold mb-6 text-center text-teal-700">Manage User Accounts</h2>
 
       <div className="mt-10 bg-white shadow-md rounded-lg p-6">

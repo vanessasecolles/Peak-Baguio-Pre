@@ -1,179 +1,229 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../../firebaseConfig';
-import { collection, onSnapshot } from 'firebase/firestore';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { collection, onSnapshot, getDocs } from 'firebase/firestore';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+
+const rowsPerPageOptions = [5, 10, 20];
+
+// Helper to strip markdown syntax for PDF export
+const stripMarkdown = (text = '') =>
+  text
+    // Remove links but keep text
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+    // Bold and italic
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    // Inline code
+    .replace(/`([^`]*)`/g, '$1')
+    // Headings
+    .replace(/^#+\s*(.*)/gm, '$1')
+    // Remove any remaining Markdown chars
+    .replace(/[>*~`-]/g, '')
+    .trim();
 
 const AdminItinerariesTable = () => {
   const [itineraries, setItineraries] = useState([]);
   const [filteredItineraries, setFilteredItineraries] = useState([]);
   const [budgetFilter, setBudgetFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState('all');
-  const reportRef = useRef(null);
+  const [spotFilter, setSpotFilter] = useState('all');
+  const [feedbackFilter, setFeedbackFilter] = useState('all');
+  const [spotNames, setSpotNames] = useState({});
+  const [uniqueSpots, setUniqueSpots] = useState([]);
+  const [showFilters, setShowFilters] = useState(true);
+  const [expandedRows, setExpandedRows] = useState(new Set());
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageOptions[1]);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
+  // Load data
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'itineraries'), snapshot => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+    const unsub = onSnapshot(collection(db, 'itineraries'), snapshot => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setItineraries(data);
       setFilteredItineraries(data);
+      setUniqueSpots(Array.from(new Set(data.map(i => i.spot).filter(Boolean))));
     });
-
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
+  // Load spot names
   useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [budgetFilter, periodFilter, itineraries]);
+    (async () => {
+      const snap = await getDocs(collection(db, 'spots'));
+      const map = {};
+      snap.docs.forEach(d => (map[d.id] = d.data().name || d.id));
+      setSpotNames(map);
+    })();
+  }, []);
 
-  const applyFilters = () => {
-    let filtered = itineraries;
-
-    if (budgetFilter !== 'all') {
-      filtered = filtered.filter(item => item.budget === budgetFilter);
+  // Apply filters & sorting
+  useEffect(() => {
+    let data = [...itineraries];
+    if (budgetFilter !== 'all') data = data.filter(i => i.budget === budgetFilter);
+    if (periodFilter !== 'all') data = data.filter(i => i.explorePeriod === periodFilter);
+    if (spotFilter !== 'all') data = data.filter(i => i.spot === spotFilter);
+    if (feedbackFilter !== 'all') data = data.filter(i => i.feedback === feedbackFilter);
+    if (sortConfig.key) {
+      data.sort((a, b) => {
+        const aVal = (a[sortConfig.key] || '').toString().toLowerCase();
+        const bVal = (b[sortConfig.key] || '').toString().toLowerCase();
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
     }
+    setFilteredItineraries(data);
+    setPage(0);
+  }, [itineraries, budgetFilter, periodFilter, spotFilter, feedbackFilter, sortConfig]);
 
-    if (periodFilter !== 'all') {
-      filtered = filtered.filter(item => item.explorePeriod === periodFilter);
-    }
-
-    setFilteredItineraries(filtered);
+  const requestSort = key => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
   };
 
-  const handlePrint = () => {
-    const printContent = reportRef.current.innerHTML;
-    const originalContent = document.body.innerHTML;
-
-    document.body.innerHTML = printContent;
-    window.print();
-    document.body.innerHTML = originalContent;
-    window.location.reload();
-  };
-
-  const handleDownloadPDF = () => {
-    html2canvas(reportRef.current, { scale: 2 }).then(canvas => {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
-      const imgWidth = 190;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 10;
-
-      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save('ItinerariesReport.pdf');
+  const toggleRow = id => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
     });
   };
 
-  const handleDownloadExcel = () => {
-    const worksheetData = filteredItineraries.map(({ budget, explorePeriod, itinerary, spot }) => ({
-      Budget: budget || 'N/A',
-      ExplorePeriod: explorePeriod || 'N/A',
-      Itinerary: itinerary || 'N/A',
-      Spot: spot || 'N/A',
-    }));
+  // Pagination
+  const start = page * rowsPerPage;
+  const displayed = filteredItineraries.slice(start, start + rowsPerPage);
+  const pageCount = Math.ceil(filteredItineraries.length / rowsPerPage) || 1;
 
-    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Itineraries');
-    XLSX.writeFile(workbook, 'ItinerariesReport.xlsx');
+  // PDF export using jsPDF-AutoTable with stripped markdown
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const head = [['Budget', 'Period', 'Spot', 'Feedback', 'Itinerary']];
+    const body = filteredItineraries.map(({ budget, explorePeriod, spot, feedback, itinerary }) => [
+      budget || 'N/A',
+      explorePeriod || 'N/A',
+      spotNames[spot] || spot || 'N/A',
+      feedback || 'None',
+      stripMarkdown(itinerary) // plain text
+    ]);
+    autoTable(doc, {
+      head,
+      body,
+      startY: 20,
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [224, 224, 224] },
+      theme: 'striped',
+      margin: { left: 10, right: 10 }
+    });
+    doc.save('ItinerariesReport.pdf');
+  };
+
+  // Excel export
+  const handleDownloadExcel = () => {
+    const wsData = filteredItineraries.map(({ budget, explorePeriod, spot, feedback, itinerary }) => ({
+      Budget: budget || 'N/A',
+      Period: explorePeriod || 'N/A',
+      Spot: spotNames[spot] || spot || 'N/A',
+      Feedback: feedback || 'None',
+      Itinerary: stripMarkdown(itinerary)
+    }));
+    const ws = XLSX.utils.json_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Itineraries');
+    XLSX.writeFile(wb, 'ItinerariesReport.xlsx');
   };
 
   return (
-    <div className="p-6 bg-white shadow-lg rounded-lg">
-      <h2 className="text-2xl font-bold mb-4">Admin Itineraries Table</h2>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-4">
-        <div>
-          <label className="font-semibold mr-2">Budget:</label>
-          <select
-            value={budgetFilter}
-            onChange={(e) => setBudgetFilter(e.target.value)}
-            className="p-2 border border-gray-300 rounded-md"
-          >
-            <option value="all">All</option>
-            <option value="Luxury Range">Luxury Range</option>
-            <option value="Mid Range">Mid Range</option>
-            <option value="Low Range">Low Range</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="font-semibold mr-2">Explore Period:</label>
-          <select
-            value={periodFilter}
-            onChange={(e) => setPeriodFilter(e.target.value)}
-            className="p-2 border border-gray-300 rounded-md"
-          >
-            <option value="all">All</option>
-            <option value="Morning">Morning</option>
-            <option value="Afternoon">Afternoon</option>
-            <option value="Evening">Evening</option>
-          </select>
+    <div className="container mx-auto p-6 md:ml-64">
+      <div className="flex justify-between items-center mb-6 no-print">
+        <h1 className="text-3xl font-semibold">Admin Itineraries Report</h1>
+        <div className="space-x-2">
+          <button onClick={handleDownloadPDF} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Export PDF</button>
+          <button onClick={handleDownloadExcel} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Export Excel</button>
         </div>
       </div>
 
-      {/* Table */}
-      <div ref={reportRef} className="overflow-x-auto">
-        <table className="min-w-full bg-white">
-          <thead>
+      <div className="bg-gray-50 p-4 rounded-lg shadow-sm no-print mb-4">
+        <button onClick={() => setShowFilters(sf => !sf)} className="text-blue-600">
+          {showFilters ? 'Hide Filters ▲' : 'Show Filters ▼'}
+        </button>
+        {showFilters && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <Filter label="Budget" value={budgetFilter} onChange={setBudgetFilter} options={['all','Low Budget','Mid Range','Luxury']} />
+            <Filter label="Period" value={periodFilter} onChange={setPeriodFilter} options={['all','Morning','Afternoon','Evening','Whole Day']} />
+            <Filter label="Spot" value={spotFilter} onChange={setSpotFilter} options={['all',...uniqueSpots]} displayMap={spotNames} />
+            <Filter label="Feedback" value={feedbackFilter} onChange={setFeedbackFilter} options={['all','liked','disliked']} />
+          </div>
+        )}
+      </div>
+
+      <div className="overflow-auto bg-white rounded-lg shadow">
+        <table className="min-w-full table-auto">
+          <thead className="bg-gray-200 sticky top-0">
             <tr>
-              <th className="py-2 px-4 border-b">Budget</th>
-              <th className="py-2 px-4 border-b">Explore Period</th>
-              <th className="py-2 px-4 border-b">Itinerary</th>
-              <th className="py-2 px-4 border-b">Spot</th>
+              {['budget','explorePeriod','spot','feedback','itinerary'].map(key => (
+                <th key={key} onClick={() => requestSort(key)} className="px-4 py-3 text-left cursor-pointer font-medium uppercase tracking-wide">
+                  {key === 'explorePeriod' ? 'Period' : key.charAt(0).toUpperCase() + key.slice(1)}
+                  {sortConfig.key === key && (sortConfig.direction === 'asc' ? ' 🔼' : ' 🔽')}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {filteredItineraries.map(({ id, budget, explorePeriod, itinerary, spot }) => (
-              <tr key={id}>
-                <td className="py-2 px-4 border-b">{budget || 'N/A'}</td>
-                <td className="py-2 px-4 border-b">{explorePeriod || 'N/A'}</td>
-                <td className="py-2 px-4 border-b whitespace-pre-wrap">{itinerary || 'N/A'}</td>
-                <td className="py-2 px-4 border-b">{spot || 'N/A'}</td>
+            {displayed.map(({ id, budget, explorePeriod, spot, feedback, itinerary }) => (
+              <tr key={id} className="border-b hover:bg-gray-50">
+                <td className="px-4 py-2">{budget || 'N/A'}</td>
+                <td className="px-4 py-2">{explorePeriod || 'N/A'}</td>
+                <td className="px-4 py-2">{spotNames[spot] || spot || 'N/A'}</td>
+                <td className="px-4 py-2 capitalize">{feedback || 'None'}</td>
+                <td className="px-4 py-2">
+                  {expandedRows.has(id) ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{itinerary}</ReactMarkdown>
+                  ) : (
+                    <>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{`${itinerary.slice(0, 100)}${itinerary.length > 100 ? '...' : ''}`}</ReactMarkdown>
+                      {itinerary.length > 100 && <button onClick={() => toggleRow(id)} className="text-indigo-600 ml-2 no-print">More</button>}
+                    </>
+                  )}
+                  {expandedRows.has(id) && <button onClick={() => toggleRow(id)} className="text-indigo-600 ml-2 no-print">Less</button>}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Buttons */}
-      <div className="flex flex-wrap justify-end gap-3 mt-6">
-        <button
-          onClick={handlePrint}
-          className="bg-teal-600 text-white py-2 px-4 rounded hover:bg-teal-700 transition"
-        >
-          Print Report
-        </button>
-        <button
-          onClick={handleDownloadPDF}
-          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
-        >
-          Download as PDF
-        </button>
-        <button
-          onClick={handleDownloadExcel}
-          className="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition"
-        >
-          Download as Excel
-        </button>
+      <div className="flex justify-between items-center mt-4 no-print">
+        <div>
+          <label className="mr-2">Rows per page:</label>
+          <select value={rowsPerPage} onChange={e => setRowsPerPage(Number(e.target.value))} className="border rounded p-1">
+            {rowsPerPageOptions.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+        <div className="space-x-2">
+          <button onClick={() => setPage(p => Math.max(p - 1, 0))} disabled={page === 0} className="px-3 py-1 border rounded">Prev</button>
+          <span>{page + 1} / {pageCount}</span>
+          <button onClick={() => setPage(p => Math.min(p + 1, pageCount - 1))} disabled={page >= pageCount - 1} className="px-3 py-1 border rounded">Next</button>
+        </div>
       </div>
     </div>
   );
 };
+
+const Filter = ({ label, value, onChange, options, displayMap }) => (
+  <div className="flex flex-col">
+    <label className="text-sm text-gray-700 mb-1">{label}</label>
+    <select value={value} onChange={e => onChange(e.target.value)} className="p-2 border rounded-md">
+      {options.map(opt => (
+        <option key={opt} value={opt}>{opt === 'all' ? 'All' : displayMap ? displayMap[opt] || opt : opt}</option>
+      ))}
+    </select>
+  </div>
+);
 
 export default AdminItinerariesTable;
