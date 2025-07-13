@@ -1,4 +1,3 @@
-// SpotDetails.js
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../../firebaseConfig";
@@ -15,6 +14,7 @@ const SpotDetails = () => {
   const { spotId } = useParams();
   const [activities, setActivities] = useState([]);
   const [dining, setDining] = useState([]);
+  const [selectedSection, setSelectedSection] = useState("");
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState("");
   const [selectedBudget, setSelectedBudget] = useState("");
   const [budgets] = useState(Object.keys(budgetMap));
@@ -126,11 +126,9 @@ const SpotDetails = () => {
             className="w-full rounded-lg shadow-md h-64 object-cover mb-4"
           />
         )}
-        {/* Main spot description (truncated) */}
         <div className="text-lg text-gray-700 mb-2">
           <TruncatedText htmlContent={description} />
         </div>
-        {/* Parking area styled as a blue underlined link */}
         <div className="text-md font-semibold mt-4">
           <span className="text-teal-800 block mb-2">Parking Area:</span>
           <div
@@ -140,96 +138,114 @@ const SpotDetails = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Primary Filter: Section */}
       <div className="max-w-4xl mx-auto mb-8 px-6">
-        <div className="mb-4">
-          <label className="block font-semibold text-teal-800 mb-2">
-            Filter by Time of Day
-          </label>
-          <select
-            className="w-full p-4 border border-teal-300 rounded-lg"
-            value={selectedTimeOfDay}
-            onChange={(e) => setSelectedTimeOfDay(e.target.value)}
-          >
-            <option value="">All Times of Day</option>
-            {timeOfDayOptions.map((time) => (
-              <option key={time} value={time}>
-                {time}
-              </option>
-            ))}
-          </select>
-        </div>
+        <label className="block font-semibold text-teal-800 mb-2">
+          Choose Section
+        </label>
+        <select
+          className="w-full p-4 border border-teal-300 rounded-lg"
+          value={selectedSection}
+          onChange={(e) => {
+            setSelectedSection(e.target.value);
+            // reset secondary filters
+            setSelectedTimeOfDay("");
+            setSelectedBudget("");
+          }}
+        >
+          <option value="">All Sections</option>
+          <option value="Activities">Activities</option>
+          <option value="Dining Options">Dining Options</option>
+        </select>
 
-        <div>
-          <label className="block font-semibold text-teal-800 mb-2">
-            Filter by Budget
-          </label>
-          <select
-            className="w-full p-4 border border-teal-300 rounded-lg"
-            value={selectedBudget}
-            onChange={(e) => setSelectedBudget(e.target.value)}
-          >
-            <option value="">All Budgets</option>
-            {budgets.map((budget) => (
-              <option key={budget} value={budget}>
-                {budget}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+        {/* Secondary Filters */}
+        {selectedSection === "Activities" && (
+          <div className="mt-6">
+            <label className="block font-semibold text-teal-800 mb-2">
+              Filter by Time of Day
+            </label>
+            <select
+              className="w-full p-4 border border-teal-300 rounded-lg"
+              value={selectedTimeOfDay}
+              onChange={(e) => setSelectedTimeOfDay(e.target.value)}
+            >
+              <option value="">All Times</option>
+              {timeOfDayOptions.map((time) => (
+                <option key={time} value={time}>
+                  {time}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-      {/* Activities */}
-      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <h3 className="col-span-full text-2xl font-bold text-teal-800 mb-4">Activities</h3>
-        {filteredActivities.length > 0 ? (
-          filteredActivities.map((activity, index) => (
-            <div key={index} className="rounded-lg shadow-xl bg-white overflow-hidden">
-              {activity.image && (
-                <img
-                  src={activity.image}
-                  alt={activity.name}
-                  className="w-full h-48 object-cover"
-                />
-              )}
-              <div className="p-6">
-                <h4 className="text-xl font-semibold mb-2 text-teal-800">{activity.name}</h4>
-                <TruncatedText htmlContent={activity.description} />
-                <p className="text-gray-700 font-semibold mt-4">
-                  Starts at: {activity.price}
-                </p>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-center text-lg col-span-full">No activities available.</p>
+        {selectedSection === "Dining Options" && (
+          <div className="mt-6">
+            <label className="block font-semibold text-teal-800 mb-2">
+              Filter by Budget
+            </label>
+            <select
+              className="w-full p-4 border border-teal-300 rounded-lg"
+              value={selectedBudget}
+              onChange={(e) => setSelectedBudget(e.target.value)}
+            >
+              <option value="">All Budgets</option>
+              {budgets.map((budget) => (
+                <option key={budget} value={budget}>
+                  {budget}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
 
-      {/* Dining Options */}
-      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-        <h3 className="col-span-full text-2xl font-bold text-teal-800 mb-4">Dining Options</h3>
-        {filteredDining.length > 0 ? (
-          filteredDining.map((option, index) => (
-            <div key={index} className="rounded-lg shadow-xl bg-white overflow-hidden">
-              {option.image && (
-                <img
-                  src={option.image}
-                  alt={option.name}
-                  className="w-full h-48 object-cover"
-                />
-              )}
-              <div className="p-6">
-                <h4 className="text-xl font-semibold mb-2 text-teal-800">{option.name}</h4>
-                <TruncatedText htmlContent={option.description} />
-                <p className="text-gray-700 font-semibold mt-4">{option.price}</p>
+      {/* Render Lists Based on Section */}
+      {/* Activities Section */}
+      {(selectedSection === "" || selectedSection === "Activities") && (
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <h3 className="col-span-full text-2xl font-bold text-teal-800 mb-4">Activities</h3>
+          {filteredActivities.length > 0 ? (
+            filteredActivities.map((activity, idx) => (
+              <div key={idx} className="rounded-lg shadow-xl bg-white overflow-hidden">
+                {activity.image && (
+                  <img src={activity.image} alt={activity.name} className="w-full h-48 object-cover" />
+                )}
+                <div className="p-6">
+                  <h4 className="text-xl font-semibold mb-2 text-teal-800">{activity.name}</h4>
+                  <TruncatedText htmlContent={activity.description} />
+               
+                </div>
               </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-center text-lg col-span-full">No dining options available.</p>
-        )}
-      </div>
+            ))
+          ) : (
+            <p className="text-center text-lg col-span-full">No activities available.</p>
+          )}
+        </div>
+      )}
+
+      {/* Dining Section */}
+      {(selectedSection === "" || selectedSection === "Dining Options") && (
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+          <h3 className="col-span-full text-2xl font-bold text-teal-800 mb-4">Dining Options</h3>
+          {filteredDining.length > 0 ? (
+            filteredDining.map((opt, idx) => (
+              <div key={idx} className="rounded-lg shadow-xl bg-white overflow-hidden">
+                {opt.image && (
+                  <img src={opt.image} alt={opt.name} className="w-full h-48 object-cover" />
+                )}
+                <div className="p-6">
+                  <h4 className="text-xl font-semibold mb-2 text-teal-800">{opt.name}</h4>
+                  <TruncatedText htmlContent={opt.description} />
+                  <p className="text-gray-700 font-semibold mt-4">{opt.price}</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-lg col-span-full">No dining options available.</p>
+          )}
+        </div>
+      )}
     </section>
   );
 };
