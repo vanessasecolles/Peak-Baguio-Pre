@@ -1,3 +1,4 @@
+// src/components/UserAuth.js
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebaseConfig';
 import {
@@ -7,10 +8,18 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -25,18 +34,18 @@ const UserAuth = () => {
 
   // Track auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, user => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsLoggedIn(!!user);
     });
     return unsubscribe;
   }, []);
 
-  // Validate inputs
+  // Validation
   const canLogin = email.trim() !== '' && password.length >= 6;
   const canRegister = canLogin && password === confirmPassword;
   const canReset = email.trim() !== '';
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (resetMode) {
@@ -54,7 +63,7 @@ const UserAuth = () => {
       }
 
       if (mode === 'register') {
-        // Registration flow
+        // Registration
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
         await setDoc(doc(db, 'users', user.uid), { email: user.email, role: 'user' });
         toast.success('Registered successfully! Please login.');
@@ -62,11 +71,22 @@ const UserAuth = () => {
         setPassword('');
         setConfirmPassword('');
       } else {
-        // Login flow with quick-patch toast
-        await signInWithEmailAndPassword(auth, email, password);
+        // Login + role check + toast-then-navigate
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+
+        // Fetch the user document to read their role
+        const userSnap = await getDoc(doc(db, 'users', cred.user.uid));
+        const userData = userSnap.exists() ? userSnap.data() : { role: 'user' };
+
         toast.success('Logged in! Redirecting...', {
           autoClose: 1500,
-          onClose: () => navigate('/'),
+          onClose: () => {
+            if (userData.role === 'admin') {
+              navigate('/admin');
+            } else {
+              navigate('/');
+            }
+          },
         });
       }
     } catch (err) {
@@ -84,6 +104,7 @@ const UserAuth = () => {
     }
   };
 
+  // If already logged in…
   if (isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50">
@@ -96,11 +117,11 @@ const UserAuth = () => {
             Logout
           </button>
         </div>
-        <ToastContainer position="top-center" />
       </div>
     );
   }
 
+  // Login / Register / Reset UI
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-teal-100 via-blue-100 to-teal-50 p-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
@@ -108,19 +129,29 @@ const UserAuth = () => {
         <div className="flex mb-6">
           <button
             onClick={() => { setMode('login'); setResetMode(false); }}
-            className={`flex-1 py-2 ${mode === 'login' && !resetMode ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-600'}`}
+            className={`flex-1 py-2 ${
+              mode === 'login' && !resetMode
+                ? 'border-b-2 border-teal-600 text-teal-600'
+                : 'text-gray-600'
+            }`}
           >
             Login
           </button>
           <button
             onClick={() => { setMode('register'); setResetMode(false); }}
-            className={`flex-1 py-2 ${mode === 'register' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-600'}`}
+            className={`flex-1 py-2 ${
+              mode === 'register'
+                ? 'border-b-2 border-teal-600 text-teal-600'
+                : 'text-gray-600'
+            }`}
           >
             Register
           </button>
           <button
-            onClick={() => setResetMode(r => !r)}
-            className={`flex-1 py-2 ${resetMode ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-600'}`}
+            onClick={() => setResetMode((r) => !r)}
+            className={`flex-1 py-2 ${
+              resetMode ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-600'
+            }`}
           >
             Reset
           </button>
@@ -133,7 +164,7 @@ const UserAuth = () => {
               type="email"
               placeholder="Email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-teal-300"
               required
             />
@@ -147,7 +178,7 @@ const UserAuth = () => {
                   type="password"
                   placeholder="Password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-teal-300"
                   required
                   minLength={6}
@@ -160,7 +191,7 @@ const UserAuth = () => {
                     type="password"
                     placeholder="Confirm Password"
                     value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-teal-300"
                     required
                     minLength={6}
@@ -175,7 +206,13 @@ const UserAuth = () => {
 
           <button
             type="submit"
-            disabled={resetMode ? !canReset : mode === 'login' ? !canLogin : !canRegister}
+            disabled={
+              resetMode
+                ? !canReset
+                : mode === 'login'
+                ? !canLogin
+                : !canRegister
+            }
             className={`w-full py-2 rounded text-white font-semibold transition ${
               resetMode
                 ? canReset
@@ -198,7 +235,6 @@ const UserAuth = () => {
           </button>
         </form>
       </div>
-      <ToastContainer position="top-center" />
     </div>
   );
 };

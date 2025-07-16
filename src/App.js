@@ -41,6 +41,8 @@ import SpotDetails from "./components/Users/SpotsReusable";
 import ExploreBaguio from "./components/Users/ExploreBaguio";
 import DynamicSpotAdmin from "./components/Admin/DynamicSpotAdmin";
 import AddSpot from "./components/Admin/AddSpot";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
   const [userRole, setUserRole] = useState(null); // null, "user", "admin"
@@ -75,6 +77,15 @@ const App = () => {
 
   return (
     <Router>
+         <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        pauseOnHover
+        draggable
+      />
         <ScrollToTop />
       <Routes>
         {/* User Routes */}
