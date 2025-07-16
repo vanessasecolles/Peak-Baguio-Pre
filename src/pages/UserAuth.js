@@ -54,6 +54,7 @@ const UserAuth = () => {
       }
 
       if (mode === 'register') {
+        // Registration flow
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
         await setDoc(doc(db, 'users', user.uid), { email: user.email, role: 'user' });
         toast.success('Registered successfully! Please login.');
@@ -61,9 +62,12 @@ const UserAuth = () => {
         setPassword('');
         setConfirmPassword('');
       } else {
+        // Login flow with quick-patch toast
         await signInWithEmailAndPassword(auth, email, password);
-        toast.success('Logged in! Redirecting...');
-        setTimeout(() => navigate('/'), 1500);
+        toast.success('Logged in! Redirecting...', {
+          autoClose: 1500,
+          onClose: () => navigate('/'),
+        });
       }
     } catch (err) {
       toast.error(err.message);

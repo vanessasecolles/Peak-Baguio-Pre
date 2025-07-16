@@ -102,18 +102,18 @@ const GenerateItinerary = () => {
       const key = budgetMap[budget];
       const { activities, dining } = await fetchSpotData(spot, explorePeriod);
 
-      // Pick dining options (keep price)
+      // Pick dining options (keep price) — **bold** name
       const filteredDining = dining.find(d => d.budget === key)?.diningOptions || [];
       const selectedDining = shuffleArray(filteredDining).slice(0, 3);
       const formattedDining = selectedDining
-        .map(opt => `- ${opt.name}: ${opt.description} (${opt.price})`)
+        .map(opt => `- **${opt.name}**: ${opt.description} (${opt.price})`)
         .join("\n\n");
 
-      // Pick activities helper (remove price)
+      // Pick activities helper (remove price) — **bold** name
       const pickActivities = arr =>
         shuffleArray(arr)
           .slice(0, 5)
-          .map(a => `- ${a.name}: ${a.description}`)
+          .map(a => `- **${a.name}**: ${a.description}`)
           .join("\n\n");
 
       const slug = spot.toLowerCase().replace(/\s+/g, "-");
