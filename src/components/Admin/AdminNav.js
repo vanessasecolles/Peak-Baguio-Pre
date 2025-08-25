@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { auth, db } from "../../firebaseConfig";
 import { signOut } from "firebase/auth";
 import { collection, getDocs } from "firebase/firestore";
@@ -14,7 +14,6 @@ import {
   faTable,
   faChartSimple,
   faPlusSquare,
-  faCog
 } from "@fortawesome/free-solid-svg-icons";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -24,8 +23,12 @@ const AdminNav = () => {
   const userRole = "admin";
   const [spots, setSpots] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [spotsCollapsed, setSpotsCollapsed] = useState(false);
+
+  // collapsed by default
+  const [isSpotsOpen, setIsSpotsOpen] = useState(false);
+
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const fetchSpots = async () => {
@@ -56,6 +59,21 @@ const AdminNav = () => {
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
+  // --- Active route helpers ---
+  const isManageRoute =
+    pathname.startsWith("/admin-dashboard/spot/") ||
+    pathname === "/admin-dashboard/add-spots";
+
+  // Auto-open the Manage Spots section when its routes are active; keep closed otherwise
+  useEffect(() => {
+    setIsSpotsOpen(isManageRoute);
+  }, [isManageRoute]);
+
+  const navClasses = (isActive) =>
+    `flex items-center p-2 rounded transition-colors ${
+      isActive ? "bg-blue-700" : "hover:bg-blue-600"
+    }`;
+
   return (
     <>
       {/* Mobile Header */}
@@ -68,90 +86,140 @@ const AdminNav = () => {
 
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={closeMobileMenu} />
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={closeMobileMenu}
+        />
       )}
 
       {/* Sidebar */}
-      <nav className={`fixed left-0 top-0 h-full w-64 bg-gradient-to-r from-teal-900 via-blue-900 to-teal-800 text-white transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} transition-transform md:translate-x-0 z-50`}>
+      <nav
+        className={`fixed left-0 top-0 h-full w-64 bg-gradient-to-r from-teal-900 via-blue-900 to-teal-800 text-white transform ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        } transition-transform md:translate-x-0 z-50`}
+      >
         <div className="md:hidden flex justify-end p-4">
           <button onClick={closeMobileMenu}>
             <FontAwesomeIcon icon={faTimes} size="lg" />
           </button>
         </div>
+
         {/* Brand Title */}
         <div className="p-6 text-center border-b border-teal-700">
           <h1 className="text-3xl font-bold">Peak Baguio</h1>
         </div>
+
         {/* Navigation Links */}
         <ul className="p-6 space-y-4">
-          {/* Home Link */}
+          {/* Analytics Dashboard (exact match) */}
           <li>
-            <NavLink to="/" onClick={closeMobileMenu} className={({ isActive }) =>
-              `flex items-center p-2 rounded ${isActive ? 'bg-blue-700' : 'hover:bg-blue-600'} transition-colors`
-            }>
-              <FontAwesomeIcon icon={faChartSimple} className="mr-3" /> Analytics Dashboard
+            <NavLink
+              to="/admin-dashboard"
+              end
+              onClick={closeMobileMenu}
+              className={({ isActive }) => navClasses(isActive)}
+            >
+              <FontAwesomeIcon icon={faChartSimple} className="mr-3" />
+              Analytics Dashboard
             </NavLink>
           </li>
+
           {/* Itineraries Table */}
           <li>
-            <NavLink to="/admin-dashboard/itin-table" onClick={closeMobileMenu} className={({ isActive }) =>
-              `block p-2 rounded ${isActive ? 'bg-blue-700' : 'hover:bg-blue-600'} transition-colors`
-            }>
-              <FontAwesomeIcon icon={faTable} className="mr-3" />  Itineraries Table
+            <NavLink
+              to="/admin-dashboard/itin-table"
+              onClick={closeMobileMenu}
+              className={({ isActive }) => navClasses(isActive)}
+            >
+              <FontAwesomeIcon icon={faTable} className="mr-3" />
+              Itineraries Table
             </NavLink>
           </li>
+
           {/* Admin-only Links */}
-          {userRole === 'admin' && (
+          {userRole === "admin" && (
             <>
               <li>
-                <NavLink to="/admin-dashboard/admin-accounts" onClick={closeMobileMenu} className={({ isActive }) =>
-                  `flex items-center p-2 rounded ${isActive ? 'bg-blue-700' : 'hover:bg-blue-600'} transition-colors`
-                }>
-                  <FontAwesomeIcon icon={faUserShield} className="mr-3" /> Admin Accounts
+                <NavLink
+                  to="/admin-dashboard/admin-accounts"
+                  onClick={closeMobileMenu}
+                  className={({ isActive }) => navClasses(isActive)}
+                >
+                  <FontAwesomeIcon icon={faUserShield} className="mr-3" />
+                  Admin Accounts
                 </NavLink>
               </li>
+
               <li>
-                <NavLink to="/admin-dashboard/user-accounts" onClick={closeMobileMenu} className={({ isActive }) =>
-                  `flex items-center p-2 rounded ${isActive ? 'bg-blue-700' : 'hover:bg-blue-600'} transition-colors`
-                }>
-                  <FontAwesomeIcon icon={faUserShield} className="mr-3" /> User Accounts
+                <NavLink
+                  to="/admin-dashboard/user-accounts"
+                  onClick={closeMobileMenu}
+                  className={({ isActive }) => navClasses(isActive)}
+                >
+                  <FontAwesomeIcon icon={faUserShield} className="mr-3" />
+                  User Accounts
                 </NavLink>
               </li>
+
               <li>
-                <NavLink to="/admin-dashboard/add-spots" onClick={closeMobileMenu} className={({ isActive }) =>
-                  `block p-2 rounded ${isActive ? 'bg-blue-700' : 'hover:bg-blue-600'} transition-colors`
-                }>
-                 <FontAwesomeIcon icon={faPlusSquare} className="mr-3" /> Add Spots
+                <NavLink
+                  to="/admin-dashboard/add-spots"
+                  onClick={closeMobileMenu}
+                  className={({ isActive }) => navClasses(isActive)}
+                >
+                  <FontAwesomeIcon icon={faPlusSquare} className="mr-3" />
+                  Add Spots
                 </NavLink>
               </li>
+
               {/* Manage Spots Submenu */}
               <li>
-                <div className="flex justify-between items-center p-2 rounded bg-white text-teal-900 cursor-pointer" onClick={() => setSpotsCollapsed(!spotsCollapsed)}>
-                  Manage Spots
-                  <FontAwesomeIcon icon={spotsCollapsed ? faChevronDown : faChevronRight} />
+                <div
+                  role="button"
+                  aria-expanded={isSpotsOpen}
+                  className={`flex justify-between items-center p-2 rounded cursor-pointer transition-colors ${
+                    isManageRoute ? "bg-blue-700" : "hover:bg-blue-600"
+                  }`}
+                  onClick={() => setIsSpotsOpen((v) => !v)}
+                >
+                  <span>Manage Spots</span>
+                  <FontAwesomeIcon icon={isSpotsOpen ? faChevronDown : faChevronRight} />
                 </div>
-                {!spotsCollapsed && (
+
+                {isSpotsOpen && (
                   <ul className="mt-2 pl-4 space-y-2">
-                    {loading
-                      ? <li>Loading spots...</li>
-                      : spots.map(s => (
-                          <li key={s.id}>
-                            <NavLink to={`/admin-dashboard/spot/${formatToURL(s.id)}`} onClick={closeMobileMenu} className={({ isActive }) =>
-                              `block p-2 rounded ${isActive ? 'bg-blue-700' : 'hover:bg-blue-600'} transition-colors`
-                            }>
-                              {s.name || 'Unnamed'}
-                            </NavLink>
-                          </li>
-                        ))}
+                    {loading ? (
+                      <li className="opacity-80">Loading spots...</li>
+                    ) : (
+                      spots.map((s) => (
+                        <li key={s.id}>
+                          <NavLink
+                            to={`/admin-dashboard/spot/${formatToURL(s.id)}`}
+                            onClick={closeMobileMenu}
+                            className={({ isActive }) =>
+                              `block p-2 rounded transition-colors ${
+                                isActive ? "bg-blue-700" : "hover:bg-blue-600"
+                              }`
+                            }
+                          >
+                            {s.name || "Unnamed"}
+                          </NavLink>
+                        </li>
+                      ))
+                    )}
                   </ul>
                 )}
               </li>
             </>
           )}
         </ul>
+
         {/* Logout */}
         <div className="p-6 border-t border-teal-700">
-          <button onClick={handleLogout} className="w-full bg-red-600 hover:bg-red-700 py-2 rounded flex justify-center items-center space-x-2 transition-transform hover:scale-105">
+          <button
+            onClick={handleLogout}
+            className="w-full bg-red-600 hover:bg-red-700 py-2 rounded flex justify-center items-center space-x-2 transition-transform hover:scale-105"
+          >
             <FontAwesomeIcon icon={faSignOutAlt} /> <span>Logout</span>
           </button>
         </div>

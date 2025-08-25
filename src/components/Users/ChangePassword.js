@@ -14,6 +14,37 @@ import {
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const ERROR_MAP_COMMON = {
+  "auth/network-request-failed": "Network error. Check your connection and try again.",
+  "auth/too-many-requests": "Too many attempts. Please wait a bit and try again.",
+  "auth/operation-not-allowed": "Password sign-in is disabled for this project.",
+  "auth/internal-error": "Something went wrong. Please try again.",
+};
+
+const ERROR_MAP_REAUTH = {
+  "auth/wrong-password": "Current password is incorrect.",
+  "auth/invalid-credential": "Current password is incorrect.",
+  "auth/user-mismatch": "Your session changed. Please sign in again and retry.",
+  "auth/user-disabled": "This account has been disabled. Contact support.",
+};
+
+const ERROR_MAP_UPDATE = {
+  "auth/weak-password":
+    "New password is too weak. Use more characters and mix letters, numbers, and symbols.",
+  "auth/requires-recent-login":
+    "For security, please sign in again and then update your password.",
+};
+
+const mapAuthError = (err, step /* 'reauth' | 'update' */) => {
+  const code = err?.code || "";
+  const table = {
+    ...ERROR_MAP_COMMON,
+    ...(step === "reauth" ? ERROR_MAP_REAUTH : ERROR_MAP_UPDATE),
+  };
+  return table[code] || "Couldn't update password. Please try again.";
+};
+
+
 const ChangePassword = () => {
   const [current, setCurrent] = useState("");
   const [nw, setNew] = useState("");
@@ -43,33 +74,38 @@ const ChangePassword = () => {
     nw.length >= 6 &&
     confirm === nw;
 
+  // 2) In handleSubmit, replace your try/catch with this:
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) {
-      return toast.error("No user is logged in.");
+    if (!user) return toast.error("No user is logged in.");
+
+    if (nw === current) {
+      return toast.error("New password must be different from the current password.");
     }
+
     setLoading(true);
+    let step = "reauth";
     try {
-      // Re-auth
-      const cred = EmailAuthProvider.credential(user.email, current);
+      // Re-authenticate with current password
+      const cred = EmailAuthProvider.credential(user.email || "", current);
       await reauthenticateWithCredential(user, cred);
-      // Update
+
+      // Update to the new password
+      step = "update";
       await updatePassword(user, nw);
+
       toast.success("Password updated successfully!");
       setCurrent("");
       setNew("");
       setConfirm("");
     } catch (err) {
-      if (err.code === "auth/wrong-password") {
-        toast.error("Current password is incorrect.");
-      } else if (err.code === "auth/weak-password") {
-        toast.error("New password is too weak.");
-      } else {
-        toast.error(err.message);
-      }
+      console.error("ChangePassword error:", err);
+      toast.error(mapAuthError(err, step));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-[#D8ECFB] to-[#EFF8F9] flex items-center justify-center p-4">

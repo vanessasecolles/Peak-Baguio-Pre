@@ -11,24 +11,11 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import UserAuth from "./pages/UserAuth"; // User Registration/Login Component
 import UserItineraries from "./components/Users/UserItineraries"; // User Itineraries Component
-import AdventuresActivities from "./components/Users/AdventuresActivities";
-import ArtCreativity from "./components/Users/ArtCreativity";
-import CultureHistory from "./components/Users/CultureHistory";
-import EventsFestivals from "./components/Users/EventsFestivals";
-import FamilyFriendly from "./components/Users/FamilyFriendly";
-import FoodGastronomy from "./components/Users/FoodGastronomy";
-import NatureOutdoors from "./components/Users/NatureOutdoors";
-import SeasonalAttractions from "./components/Users/SeasonalAttractions";
-import ShoppingSouvenirs from "./components/Users/ShoppingSouvenirs";
 import ChangePassword from "./components/Users/ChangePassword";
 import ScrollToTop from "./pages/ScrollToTop";
 
 // Admin Components
 import AdminNav from "./components/Admin/AdminNav"; // Admin Sidebar Navigation
-import HighlightsAdmin from "./components/Admin/HighlightsAdmin";
-import PopularSpotsAdmin from "./components/Admin/PopularSpotsAdmin";
-import FeaturedActivitiesAdmin from "./components/Admin/FeaturedActivitiesAdmin";
-import CategoriesAdmin from "./components/Admin/CategoriesAdmin";
 import GenerateItineraryAdmin from "./components/Admin/GenerateItineraryAdmin"; // New Component
 import AddAdmin from "./components/Admin/AddAdmin"; // AddAdmin Component
 import AdminLogin from "./pages/AdminLogin";
@@ -36,7 +23,6 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminItinerariesTable from "./components/Admin/AdminItinerariesTable";
 import AdminAccounts from "./components/Admin/AdminAccounts";
 import UserAccounts from "./components/Admin/UserAccounts";
-import AdminCategory from "./components/Admin/AdminCategory";
 import SpotDetails from "./components/Users/SpotsReusable";
 import ExploreBaguio from "./components/Users/ExploreBaguio";
 import DynamicSpotAdmin from "./components/Admin/DynamicSpotAdmin";
@@ -118,87 +104,8 @@ const App = () => {
                 </>
               }
             />
-            <Route
-              path="/adventures-activities"
-              element={
-                <>
-                  <Navbar />
-                  <AdventuresActivities />
-                </>
-              }
-            />
-            <Route
-              path="/art-creativity"
-              element={
-                <>
-                  <Navbar />
-                  <ArtCreativity />
-                </>
-              }
-            />
-            <Route
-              path="/culture-history"
-              element={
-                <>
-                  <Navbar />
-                  <CultureHistory />
-                </>
-              }
-            />
-            <Route
-              path="/events-festivals"
-              element={
-                <>
-                  <Navbar />
-                  <EventsFestivals />
-                </>
-              }
-            />
-            <Route
-              path="/family-friendly"
-              element={
-                <>
-                  <Navbar />
-                  <FamilyFriendly />
-                </>
-              }
-            />
-            <Route
-              path="/food-gastronomy"
-              element={
-                <>
-                  <Navbar />
-                  <FoodGastronomy />
-                </>
-              }
-            />
-            <Route
-              path="/nature-outdoors"
-              element={
-                <>
-                  <Navbar />
-                  <NatureOutdoors />
-                </>
-              }
-            />
-            <Route
-              path="/seasonal-attractions"
-              element={
-                <>
-                  <Navbar />
-                  <SeasonalAttractions />
-                </>
-              }
-            />
-            <Route
-              path="/shopping-souvenirs"
-              element={
-                <>
-                  <Navbar />
-                  <ShoppingSouvenirs />
-                </>
-              }
-            />
+       
+           
             <Route path="/explore-baguio" element={<ExploreBaguio />} />
             <Route
                 path="/spots/:spotId"
@@ -263,7 +170,6 @@ const App = () => {
                     <Route path="itin-table" element={<AdminItinerariesTable />} />
                     <Route path="admin-accounts" element={<AdminAccounts />} />
                     <Route path="user-accounts" element={<UserAccounts />} />
-                    <Route path="category/:categoryName" element={<AdminCategory />} />
                     {/* Redirect /admin-dashboard to /admin-dashboard/highlights */}
                     <Route path="" element={<AdminDashboard />} />
                   </Routes>
