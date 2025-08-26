@@ -49,6 +49,21 @@ const ExploreBaguio = () => {
   // Dynamic container width when few items
   const maxWidthClass = spots.length <= 6 ? "max-w-4xl" : "max-w-6xl";
 
+  // Pick 2 dynamic suggested spots from existing ones
+  const suggested = useMemo(() => {
+    if (!spots || spots.length === 0) return [];
+    const pool = [...spots];
+    // Simple shuffle
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    // Prefer items not at the very top to feel fresh
+    return pool.slice(0, Math.min(2, pool.length));
+  }, [spots]);
+
+  // Suggestions are shown at the bottom when at least two spots exist
+
   return (
     <section
       aria-labelledby="explore-heading"
@@ -118,9 +133,76 @@ const ExploreBaguio = () => {
               </button>
             </div>
           )}
+
+          {/* Suggested Spots Section */}
+          {suggested.length >= 2 && (
+            <section aria-labelledby="suggested-heading" className="mt-12">
+              <div className={`${maxWidthClass} mx-auto px-4`}>
+                <h3 id="suggested-heading" className="text-2xl font-bold text-teal-700 mb-6">Suggested Spots</h3>
+                <SuggestedCarousel items={suggested.slice(0, 2)} />
+              </div>
+            </section>
+          )}
         </>
       )}
     </section>
+  );
+};
+
+// Simple carousel for Suggested Spots
+const SuggestedCarousel = ({ items }) => {
+  const [idx, setIdx] = React.useState(0);
+
+  // Auto-advance every 5s
+  React.useEffect(() => {
+    const id = setInterval(() => setIdx((i) => (i + 1) % items.length), 5000);
+    return () => clearInterval(id);
+  }, [items.length]);
+
+  const prev = () => setIdx((i) => (i - 1 + items.length) % items.length);
+  const next = () => setIdx((i) => (i + 1) % items.length);
+
+  return (
+    <div className="relative">
+      <div className="overflow-hidden rounded-lg">
+        <div
+          className="flex transition-transform duration-500 ease-in-out"
+          style={{ transform: `translateX(-${idx * 100}%)` }}
+        >
+          {items.map((spot) => (
+            <div key={`slide-${spot.id}`} className="min-w-full px-1">
+              <SpotCard spot={spot} expanded={false} onToggleExpand={() => {}} />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Controls */}
+      <button
+        type="button"
+        aria-label="Previous suggestion"
+        onClick={prev}
+        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-teal-700 border border-teal-600 rounded-full w-9 h-9 flex items-center justify-center shadow"
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        aria-label="Next suggestion"
+        onClick={next}
+        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-teal-700 border border-teal-600 rounded-full w-9 h-9 flex items-center justify-center shadow"
+      >
+        ›
+      </button>
+      {/* Dots */}
+      <div className="flex justify-center gap-2 mt-4">
+        {items.map((_, i) => (
+          <span
+            key={`dot-${i}`}
+            className={`h-2 w-2 rounded-full ${i === idx ? 'bg-teal-600' : 'bg-teal-300'}`}
+          />
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -139,7 +221,7 @@ const SpotCard = ({ spot, expanded, onToggleExpand }) => {
         <div className="relative w-full h-48 overflow-hidden">
           <img
             src={image}
-            alt={`Photo of ${name}`}
+            alt={name}
             loading="lazy"
             className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
           />

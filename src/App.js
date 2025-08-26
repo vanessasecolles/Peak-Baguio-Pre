@@ -105,8 +105,24 @@ const App = () => {
               }
             />
        
-           
-            <Route path="/explore-baguio" element={<ExploreBaguio />} />
+            <Route
+              path="/explore-baguio"
+              element={
+                <>
+                  <Navbar />
+                  <ExploreBaguio />
+                </>
+              }
+            />
+            <Route
+              path="/spots"
+              element={
+                <>
+                  <Navbar />
+                  <ExploreBaguio />
+                </>
+              }
+            />
             <Route
                 path="/spots/:spotId"
                 element={
