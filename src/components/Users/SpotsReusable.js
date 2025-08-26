@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { db } from '../../firebaseConfig';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import TruncatedText from './TruncatedText';
@@ -17,6 +17,7 @@ const SpotDetails = () => {
   const [description, setDescription] = useState('');
   const [parkingArea, setParkingArea] = useState('');
   const [spotImage, setSpotImage] = useState('');
+  const [suggested, setSuggested] = useState([]);
 
   const title = spotId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
@@ -48,6 +49,22 @@ const SpotDetails = () => {
       const [actData, dinData] = await Promise.all([Promise.all(actPromises), Promise.all(dinPromises)]);
       setActivities(actData);
       setDining(dinData);
+
+      // Suggested spots (2 random others)
+      try {
+        const spSnap = await getDocs(collection(db, 'spots'));
+        const all = spSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Exclude current (doc id in this page is the title)
+        const others = all.filter(s => s.id !== title);
+        // Shuffle
+        for (let i = others.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [others[i], others[j]] = [others[j], others[i]];
+        }
+        setSuggested(others.slice(0, 2));
+      } catch {
+        // ignore suggestions failure
+      }
       setLoading(false);
     };
     fetchData();
@@ -130,8 +147,60 @@ const SpotDetails = () => {
           )) : <p className="col-span-full text-center text-lg">No dining options available.</p>}
         </div>
       )}
+
+      {/* Suggested Spots Carousel */}
+      {suggested.length >= 2 && (
+        <div className="max-w-6xl mx-auto px-6 mt-16">
+          <h3 className="text-2xl font-bold text-teal-800 mb-6">Suggested Spots</h3>
+          <SuggestedCarousel items={suggested} />
+        </div>
+      )}
     </section>
   );
 };
 
 export default SpotDetails;
+
+// Simple carousel reused for 2 suggestions
+const SuggestedCarousel = ({ items }) => {
+  const [idx, setIdx] = useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => setIdx(i => (i + 1) % items.length), 5000);
+    return () => clearInterval(id);
+  }, [items.length]);
+  const prev = () => setIdx(i => (i - 1 + items.length) % items.length);
+  const next = () => setIdx(i => (i + 1) % items.length);
+
+  return (
+    <div className="relative">
+      <div className="overflow-hidden rounded-lg">
+        <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${idx * 100}%)` }}>
+          {items.map((s) => {
+            const slug = s.id.toLowerCase().replace(/\s+/g, '-');
+            return (
+              <div key={`sugg-${s.id}`} className="min-w-full px-1">
+                <Link to={`/spots/${slug}`} className="block bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden">
+                  {s.image ? (
+                    <img src={s.image} alt={s.name || s.id} className="w-full h-56 object-cover" />
+                  ) : (
+                    <div className="w-full h-56 bg-gray-200 flex items-center justify-center text-gray-500">No image</div>
+                  )}
+                  <div className="p-4">
+                    <h4 className="text-xl font-semibold text-teal-800">{s.name || s.id}</h4>
+                  </div>
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <button type="button" aria-label="Previous" onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-teal-700 border border-teal-600 rounded-full w-9 h-9 flex items-center justify-center shadow">‹</button>
+      <button type="button" aria-label="Next" onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-teal-700 border border-teal-600 rounded-full w-9 h-9 flex items-center justify-center shadow">›</button>
+      <div className="flex justify-center gap-2 mt-4">
+        {items.map((_, i) => (
+          <span key={`dot-${i}`} className={`h-2 w-2 rounded-full ${i === idx ? 'bg-teal-600' : 'bg-teal-300'}`} />
+        ))}
+      </div>
+    </div>
+  );
+};

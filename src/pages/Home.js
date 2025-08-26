@@ -85,8 +85,8 @@ const Home = () => {
         )}
       </div>
 
-      <ItinerarySteps />
-      <ExploreBaguio />
+  <ItinerarySteps />
+  <ExploreBaguio showSuggestions={false} />
 
       <footer className="bg-teal-800 text-white py-8 mt-16">
         <div className="text-center">

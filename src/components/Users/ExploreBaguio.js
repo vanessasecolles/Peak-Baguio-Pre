@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 
 const PAGE_SIZE = 8;
 
-const ExploreBaguio = () => {
+const ExploreBaguio = ({ showSuggestions = true }) => {
   const [spots, setSpots] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -135,7 +135,7 @@ const ExploreBaguio = () => {
           )}
 
           {/* Suggested Spots Section */}
-          {suggested.length >= 2 && (
+          {showSuggestions && suggested.length >= 2 && (
             <section aria-labelledby="suggested-heading" className="mt-12">
               <div className={`${maxWidthClass} mx-auto px-4`}>
                 <h3 id="suggested-heading" className="text-2xl font-bold text-teal-700 mb-6">Suggested Spots</h3>
