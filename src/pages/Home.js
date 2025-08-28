@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebaseConfig';
 import ExploreBaguio from '../components/Users/ExploreBaguio';
 import GenerateItinerary from '../components/Users/GenerateItinerary';
-import backgroundImage from '../img/backgroundHS.png';
+import backgroundImage from '../img/FINALCOVER.png';
 import ItinerarySteps from '../components/Users/ItinerarySteps';
 
 const Home = () => {
