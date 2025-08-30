@@ -77,7 +77,7 @@ const ExploreBaguio = ({ showSuggestions = true }) => {
       </h2>
 
       {/* Search only */}
-      <div className="max-w-4xl mx-auto mb-12 px-4">
+  <div className="max-w-4xl mx-auto mb-12 px-4">
         <input
           type="search"
           aria-label="Search spots"
@@ -95,7 +95,7 @@ const ExploreBaguio = ({ showSuggestions = true }) => {
       {loading ? (
         <div
           className={`${maxWidthClass} mx-auto px-4 grid gap-6`}
-          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
         >
           {Array.from({ length: PAGE_SIZE }).map((_, i) => (
             <div
@@ -112,7 +112,7 @@ const ExploreBaguio = ({ showSuggestions = true }) => {
         <>
           <div
             className={`${maxWidthClass} mx-auto px-4 grid gap-6`}
-            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
           >
             {filtered.slice(0, visibleCount).map((spot) => (
               <SpotCard

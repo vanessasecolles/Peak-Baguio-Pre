@@ -62,4 +62,21 @@
       
     }
   }
+
+/* Layout base to improve mobile rendering */
+html, body, #root {
+  height: 100%;
+}
+
+/* Prevent oversized images from breaking layout */
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Improve focus visibility */
+:focus-visible {
+  outline: 2px solid #14b8a6; /* teal-500 */
+  outline-offset: 2px;
+}
   

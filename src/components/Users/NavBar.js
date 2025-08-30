@@ -60,15 +60,17 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="user-navbar bg-teal-700 text-white shadow-md p-4">
+  <nav className="user-navbar sticky top-0 z-50 bg-teal-700 text-white shadow-md p-4">
         <div className="container mx-auto flex justify-between items-center relative">
           <div className="flex items-center">
-            <img src={logo} alt="Peak Baguio Logo" className="h-12 w-auto mr-4" />
-            <span className="text-2xl font-bold text-yellow-400">Peak Baguio</span>
+            <img src={logo} alt="Peak Baguio Logo" className="h-10 md:h-12 w-auto mr-4" />
+            <span className="text-2xl font-bold text-yellow-400"></span>
           </div>
 
           <button
             className="md:hidden"
+            aria-label="Toggle menu"
+            aria-expanded={isMenuOpen}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? (
@@ -83,11 +85,11 @@ const Navbar = () => {
           </button>
 
           <ul
-            className={`md:flex md:space-x-6 md:items-center absolute md:static top-full left-0 w-full md:w-auto bg-teal-700 md:bg-transparent z-50 mt-1 md:mt-0 rounded-b-lg md:rounded-none shadow-lg md:shadow-none p-4 md:p-0 space-y-4 md:space-y-0 transform-gpu transition-all duration-300 ease-in-out ${
-              isMenuOpen
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 -translate-y-2 pointer-events-none"
+            className={`md:flex md:space-x-6 md:items-center absolute md:static top-full left-0 w-full md:w-auto bg-teal-700 md:bg-transparent z-50 mt-1 md:mt-0 rounded-b-lg md:rounded-none shadow-lg md:shadow-none p-4 md:p-0 space-y-4 md:space-y-0 transform-gpu transition-all duration-200 ease-out ${
+              isMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
             } md:opacity-100 md:translate-y-0 md:pointer-events-auto`}
+            role="menu"
+            aria-hidden={!isMenuOpen}
           >
             <li>
               <NavLink
@@ -106,7 +108,7 @@ const Navbar = () => {
             </li>
 
             <li className="relative group hidden md:block">
-              <span className="block p-2 rounded cursor-pointer hover:text-yellow-200 transition-colors duration-300">
+              <span className="block p-2 rounded cursor-pointer hover:text-blue-300 transition-colors duration-300">
                 Explore Baguio
               </span>
               <div className="absolute left-0 top-full mt-2 w-48 bg-white text-teal-700 shadow-md rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
@@ -124,10 +126,10 @@ const Navbar = () => {
               </div>
             </li>
 
-            <li className="md:hidden">
+      <li className="md:hidden">
               <button
                 onClick={() => setIsExploreOpenMobile(!isExploreOpenMobile)}
-                className="block p-2 rounded w-full text-left hover:text-yellow-200 transition-colors duration-300"
+        className="block p-2 rounded w-full text-left hover:text-blue-300 transition-colors duration-300"
               >
                 Explore Baguio
               </button>
@@ -183,7 +185,7 @@ const Navbar = () => {
                 <li>
                   <button
                     onClick={handleLogout}
-                    className="block p-2 rounded font-bold text-yellow-300 hover:text-yellow-200 transition-colors duration-300 focus:outline-none"
+                    className="block p-2 rounded font-bold text-red-500 hover:text-red-400 transition-colors duration-300 focus:outline-none"
                   >
                     Logout
                   </button>

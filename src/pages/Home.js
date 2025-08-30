@@ -39,30 +39,33 @@ const Home = () => {
   return (
     <div className="bg-gray-100">
       {/* Hero Section */}
-      <section
-        className="flex items-center justify-center h-[60vh] text-white font-extrabold"
-        style={{
-          backgroundImage: `url(${backgroundImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          position: 'relative',
-        }}
-      >
-        <div className="absolute inset-0 bg-black opacity-50"></div>
-        <div className="relative text-center">
-          <h1 className="text-6xl font-bold mb-4 text-teal-400 drop-shadow-2xl">
+  <section className="relative w-full text-white font-extrabold">
+      <div className="relative w-full">
+            <img
+              src={backgroundImage}
+              alt="Baguio scenic cover"
+              className="block w-full h-auto"
+              decoding="async"
+              fetchpriority="high"
+            />
+            <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+            <div className="absolute inset-0 flex items-center justify-center px-4">
+              <div className="text-center max-w-4xl">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-teal-400 drop-shadow-2xl">
             Welcome to Peak Baguio
           </h1>
-          <p className="text-2xl mb-6 text-gray-200 drop-shadow-lg">
+          <p className="text-base sm:text-lg md:text-2xl mb-6 text-gray-200 drop-shadow-lg">
             Discover the best places to visit and plan your adventure in the City of Pines.
           </p>
-          <button
-            onClick={scrollToItinerary}
-            className="mt-6 bg-teal-500 text-gray-900 py-3 px-8 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-300 transform hover:scale-105 transition-transform duration-300 ease-in-out"
-          >
-            Plan Your Itinerary
-          </button>
-        </div>
+                <button
+                  onClick={scrollToItinerary}
+                  className="mt-6 bg-teal-500 text-gray-900 py-3 px-8 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-300 transform hover:scale-105 transition-transform duration-300 ease-in-out"
+                >
+                  Plan Your Itinerary
+                </button>
+              </div>
+            </div>
+          </div>
       </section>
 
       {/* Generate Itinerary Section */}
